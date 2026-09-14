@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Studiofoto - Photobooth</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/studio.css">
+</head>
+<body>
+
+<div class="bg-decor">
+    <img src="assets/images/Bg.png" alt="" class="bg-img">
+</div>
+
+<div class="app-container">
+
+    <div id="screen-welcome" class="screen active">
+        <div class="welcome-layout">
+            <div class="welcome-camera">
+                <div class="polaroid-frame">
+                    <video id="welcome-video" autoplay playsinline muted></video>
+                </div>
+                <img src="assets/images/camera.png" alt="camera" class="icon-camera">
+                <img src="assets/images/icon-confetti.png" alt="" class="icon-confetti">
+            </div>
+            <div class="welcome-text">
+                <h1>Wellcome to<br>SNAPMOMEN</h1>
+                <button class="btn btn-start" onclick="startApp()">start</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-frame" class="screen">
+        <h2>Halo, Selamat Datang !!</h2>
+        <p class="subtitle">Silahkan Pilih Bentuk Frame Anda^^</p>
+        <div class="frame-selection">
+            <div class="frame-option" onclick="selectFrame('left')" id="frame-left-option">
+                <img src="assets/frame/Frame1.png" alt="Model Kiri" class="frame-img">
+            </div>
+            <div class="frame-option" onclick="selectFrame('right')" id="frame-right-option">
+                <img src="assets/frame/Frame2.png" alt="Model Kanan" class="frame-img">
+            </div>
+        </div>
+        <button class="btn btn-next" id="btn-next-frame-model" onclick="goToScreen('screen-theme')" disabled>Next</button>
+    </div>
+
+    <div id="screen-theme" class="screen">
+        <div class="theme-layout">
+            <div class="theme-grid">
+                <div class="theme-option" data-theme="tema-1" data-model="right" onclick="selectTheme('tema-1')">
+                    <img src="assets/frame/tema11.png" alt="Tema 1">
+                </div>
+                <div class="theme-option" data-theme="tema-2" data-model="right" onclick="selectTheme('tema-2')">
+                    <img src="assets/frame/ToyStory-10x15.png" alt="Toy Story 10x15">
+                </div>
+                <div class="theme-option" data-theme="tema-3" data-model="right" onclick="selectTheme('tema-3')">
+                    <img src="assets/frame/Bakery-10x15.png" alt="Bakery 10x15">
+                </div>
+                <div class="theme-option" data-theme="tema-4" data-model="right" onclick="selectTheme('tema-4')">
+                    <img src="assets/frame/Beach-10x15.png" alt="Beach 10x15">
+                </div>
+                <div class="theme-option" data-theme="tema-5" data-model="left" onclick="selectTheme('tema-5')">
+                    <img src="assets/frame/ToyStory-5x15.png" alt="Toy Story 5x15">
+                </div>
+                <div class="theme-option" data-theme="tema-6" data-model="left" onclick="selectTheme('tema-6')">
+                    <img src="assets/frame/Bakery-5x15.png" alt="Bakery 5x15">
+                </div>
+                <div class="theme-option" data-theme="tema-7" data-model="left" onclick="selectTheme('tema-7')">
+                    <img src="assets/frame/Beach-5x15.png" alt="Beach 5x15">
+                </div>
+            </div>
+            <div class="theme-preview-side">
+                <div id="theme-preview" class="theme-preview">
+                    <div class="theme-slots">
+                        <div class="slot"></div><div class="slot"></div>
+                        <div class="slot"></div><div class="slot"></div>
+                        <div class="slot"></div><div class="slot"></div>
+                    </div>
+                </div>
+                <img src="assets/images/icon-camera.png" alt="" class="icon-camera-theme">
+            </div>
+        </div>
+        <div class="theme-actions">
+            <button class="btn btn-back" onclick="goToScreen('screen-frame')">Back</button>
+            <button class="btn btn-next" onclick="goToScreen('screen-camera'); startCameraSession();">Next</button>
+        </div>
+    </div>
+
+    <div id="screen-camera" class="screen">
+        <div class="photo-session-layout">
+            <div class="camera-side">
+                <div class="camera-container">
+                    <video id="video" autoplay playsinline muted></video>
+                    <div class="camera-overlay">
+                        <div class="counter-badge" id="camera-counter">Foto 0/0</div>
+                        <div class="countdown-overlay" id="countdown-overlay">
+                            <span id="countdown-text">3</span>
+                        </div>
+                        <div class="flash-effect" id="flash-effect"></div>
+                    </div>
+                </div>
+                <img src="assets/images/icon-camera.png" alt="" class="icon-camera-session">
+
+                <div class="filter-toggle">
+                    <button class="filter-btn active" id="filter-normal" onclick="setFilter('normal')">Normal</button>
+                    <button class="filter-btn" id="filter-bw" onclick="setFilter('bw')">B&W</button>
+                </div>
+
+                <button class="btn-capture-circle" id="btn-capture" onclick="startCountdown()">
+                    <img src="assets/images/camera.png" alt="" class="capture-icon">
+                </button>
+            </div>
+
+            <div class="frame-preview-side">
+                <div id="live-frame-preview" class="live-frame-preview">
+                    <div class="live-frame-slots" id="live-frame-slots"></div>
+                    <img id="live-frame-overlay" class="live-frame-overlay" src="" alt="">
+                    <div class="retake-layer" id="retake-layer"></div>
+                </div>
+                <div class="frame-nav-actions">
+                    <button class="btn btn-back" onclick="goToScreen('screen-theme')">Back</button>
+                    <button class="btn btn-next" id="btn-next-frame" onclick="goToScreen('screen-result')" disabled>Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-result" class="screen">
+        <div id="result-canvas-wrap" class="result-canvas-wrap">
+            <canvas id="result-canvas"></canvas>
+        </div>
+        <div class="result-actions">
+            <button class="btn btn-back" onclick="goToScreen('screen-camera')">Back</button>
+            <button class="btn btn-next" id="btn-download" onclick="downloadResult()">Download</button>
+        </div>
+    </div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/layouts.js"></script>
+<script src="js/frame-manager.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/canvas.js"></script>
+<script src="js/result-share.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
