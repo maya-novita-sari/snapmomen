@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Daftar — Snapmomen</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/style.css">
+<style>
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-card{background:#fff;padding:40px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,0.1);max-width:400px;width:100%}
+.field{margin-bottom:16px}
+.field label{display:block;font-weight:700;font-size:0.85rem;margin-bottom:6px}
+.field input{width:100%;padding:12px 14px;border-radius:12px;border:2px solid #ddd;font-size:1rem}
+.error-text{color:#C24040;font-size:0.85rem;min-height:18px;text-align:center;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1 style="text-align:center">Daftar</h1>
+    <p style="text-align:center;color:#777;margin-bottom:30px">Bikin akun baru</p>
+    <div class="field"><label>Username</label><input type="text" id="username" placeholder="Minimal 3 karakter"></div>
+    <div class="field"><label>Email</label><input type="email" id="email" placeholder="email@contoh.com"></div>
+    <div class="field"><label>Password</label><input type="password" id="password" placeholder="Minimal 4 karakter"></div>
+    <div class="error-text" id="errText"></div>
+    <button class="btn btn-start" onclick="doRegister()" style="width:100%">Daftar</button>
+    <p style="margin-top:20px;font-size:0.9rem;text-align:center">Sudah punya akun? <a href="login.html">Login</a></p>
+  </div>
+</div>
+<script src="js/api.js"></script>
+<script>
+async function doRegister() {
+  const username = document.getElementById('username').value.trim();
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const err      = document.getElementById('errText');
+  if (!username || !email || !password) { err.textContent = 'Isi semua field'; return; }
+  try {
+    const data = await apiFetch('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, email, password })
+    });
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    location.href = 'studio.html';
+  } catch (e) { err.textContent = e.message; }
+}
+</script>
+</body>
+</html>

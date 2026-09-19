@@ -1,8 +1,0 @@
-const CONFIG = {
-    FRAME_LEFT: 'left',
-    FRAME_RIGHT: 'right',
-    FRAME_LEFT_SLOTS: 6,
-    FRAME_LEFT_CAPTURES: 3,
-    FRAME_RIGHT_SLOTS: 6,
-    FRAME_RIGHT_CAPTURES: 6,
-};
