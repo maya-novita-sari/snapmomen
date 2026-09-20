@@ -4,6 +4,12 @@
     { "src": "api/**/*.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "/api/$1" }
+    { "src": "/api/(.*)", "dest": "/api/$1" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 */6 * * *"
+    }
   ]
 }

@@ -3,7 +3,7 @@ module.exports = {
   BCRYPT_ROUNDS: 10,
 
   MIN_USERNAME_LENGTH: 3,
-  MIN_PASSWORD_LENGTH: 8,
+  MIN_PASSWORD_LENGTH: 4,
 
   CODE_PREFIX: 'SNAP-',
   CODE_LENGTH: 6,
@@ -12,6 +12,7 @@ module.exports = {
   MAX_DURATION_DAYS: 3650,
 
   MAX_QUERY_LIMIT: 500,
+  PHOTO_EXPIRY_DAYS: 3,
 
   ROLES: {
     ADMIN: 'admin',

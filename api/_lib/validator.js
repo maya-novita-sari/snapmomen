@@ -21,13 +21,6 @@ const validators = {
     return null;
   },
 
-  positiveInt: (value, fieldName, max) => {
-    const num = parseInt(value);
-    if (isNaN(num) || num < 1) return `${fieldName} harus angka positif`;
-    if (max && num > max) return `${fieldName} maksimal ${max}`;
-    return null;
-  },
-
   oneOf: (value, allowed, fieldName) => {
     if (!allowed.includes(value)) return `${fieldName} harus salah satu dari: ${allowed.join(', ')}`;
     return null;

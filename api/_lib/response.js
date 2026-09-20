@@ -1,3 +1,19 @@
+function setCors(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
+function handlePreflight(req, res) {
+  if (req.method === 'OPTIONS') {
+    setCors(res);
+    res.status(200).end();
+    return true;
+  }
+  setCors(res);
+  return false;
+}
+
 function sendSuccess(res, data, status = 200) {
   return res.status(status).json(data);
 }
@@ -17,6 +33,8 @@ const serverError      = (res, err) => {
 };
 
 module.exports = {
+  setCors,
+  handlePreflight,
   sendSuccess,
   sendError,
   badRequest,

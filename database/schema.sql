@@ -39,6 +39,17 @@ CREATE TABLE IF NOT EXISTS premium_codes (
   created_at      TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS printer_settings (
+  id              SERIAL PRIMARY KEY,
+  printer_name    TEXT,
+  connected       BOOLEAN DEFAULT FALSE,
+  updated_at      TIMESTAMP DEFAULT NOW()
+);
+
+INSERT INTO printer_settings (id, printer_name, connected)
+VALUES (1, NULL, FALSE)
+ON CONFLICT (id) DO NOTHING;
+
 CREATE INDEX IF NOT EXISTS idx_photos_expires ON photos(expires_at);
 CREATE INDEX IF NOT EXISTS idx_premium_codes_code ON premium_codes(code);
 CREATE INDEX IF NOT EXISTS idx_premium_codes_status ON premium_codes(status);
