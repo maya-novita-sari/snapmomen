@@ -1,84 +1,120 @@
-const bcrypt = require('bcryptjs');
-const { query } = require('./_lib/db');
-const { generateToken, requireAuth } = require('./_lib/auth');
-const { validators, validate } = require('./_lib/validator');
-const { handlePreflight, sendSuccess, badRequest, unauthorized, notFound, methodNotAllowed } = require('./_lib/response');
-const { BCRYPT_ROUNDS, ROLES } = require('./_lib/constants');
+import bcrypt from 'bcryptjs';
+import { sql } from './_lib/db.js';
+import { signToken, getAuthUser } from './_lib/auth-middleware.js';
+import { handlePreflight, sendOk, sendError } from './_lib/response.js';
 
-const registerSchema = {
-  username: [validators.username],
-  email   : [validators.email],
-  password: [validators.password]
-};
+const USERNAME_MIN_LENGTH = 3;
+const PASSWORD_MIN_LENGTH = 4;
+const BCRYPT_ROUNDS = 10;
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (handlePreflight(req, res)) return;
 
-  const { action } = req.query;
+  const action = req.query.action;
 
-  if (action === 'register' && req.method === 'POST') {
-    const { username, email, password } = req.body;
-    const err = validate({ username, email, password }, registerSchema);
-    if (err) return badRequest(res, err.message);
+  if (action === 'register' && req.method === 'POST') return handleRegister(req, res);
+  if (action === 'login' && req.method === 'POST') return handleLogin(req, res);
+  if (action === 'me' && req.method === 'GET') return handleMe(req, res);
 
-    const existing = await query(
-      'SELECT id FROM users WHERE username = $1 OR email = $2',
-      [username.trim(), email.trim()]
-    );
-    if (existing.rows.length > 0) return badRequest(res, 'Username atau email sudah dipakai');
+  return sendError(res, 404, 'Endpoint tidak ditemukan.');
+}
 
-    const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    const result = await query(
-      'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email, role',
-      [username.trim(), email.trim(), hashed]
-    );
-    const user = result.rows[0];
-    const token = generateToken({ id: user.id, username: user.username, role: user.role });
-    return sendSuccess(res, { token, user }, 201);
+async function handleRegister(req, res) {
+  const { username, email, password } = req.body || {};
+
+  if (!username || username.length < USERNAME_MIN_LENGTH) {
+    return sendError(res, 400, `Username minimal ${USERNAME_MIN_LENGTH} karakter.`);
+  }
+  if (!email || !email.includes('@')) {
+    return sendError(res, 400, 'Email tidak valid.');
+  }
+  if (!password || password.length < PASSWORD_MIN_LENGTH) {
+    return sendError(res, 400, `Password minimal ${PASSWORD_MIN_LENGTH} karakter.`);
   }
 
-  if (action === 'login' && req.method === 'POST') {
-    const { username, password } = req.body;
-    if (!username || !password) return badRequest(res, 'Username dan password wajib diisi');
-
-    if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
-      const token = generateToken({ id: 0, username, role: ROLES.ADMIN });
-      return sendSuccess(res, { token, user: { id: 0, username, role: ROLES.ADMIN } });
+  try {
+    const existing = await sql`
+      SELECT id FROM users WHERE username = ${username} OR email = ${email}
+    `;
+    if (existing.length > 0) {
+      return sendError(res, 409, 'Username atau email sudah terdaftar.');
     }
 
-    const result = await query('SELECT * FROM users WHERE username = $1', [username.trim()]);
-    if (result.rows.length === 0) return unauthorized(res, 'Username atau password salah');
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const [user] = await sql`
+      INSERT INTO users (username, email, password, role)
+      VALUES (${username}, ${email}, ${passwordHash}, 'customer')
+      RETURNING id, username, email, role, premium_until
+    `;
 
-    const user = result.rows[0];
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return unauthorized(res, 'Username atau password salah');
+    const token = signToken({ id: user.id, username: user.username, role: user.role });
+    return sendOk(res, { token, user });
+  } catch (err) {
+    console.error('register error:', err);
+    return sendError(res, 500, 'Gagal mendaftarkan akun.');
+  }
+}
 
-    const token = generateToken({ id: user.id, username: user.username, role: user.role });
-    return sendSuccess(res, {
+async function handleLogin(req, res) {
+  const { username, password } = req.body || {};
+  if (!username || !password) {
+    return sendError(res, 400, 'Username dan password wajib diisi.');
+  }
+
+  try {
+    if (isAdminCredential(username, password)) {
+      const token = signToken({ id: 0, username, role: 'admin' });
+      return sendOk(res, {
+        token,
+        user: { id: 0, username, email: null, role: 'admin', premium_until: null },
+      });
+    }
+
+    const [user] = await sql`SELECT * FROM users WHERE username = ${username}`;
+    if (!user) return sendError(res, 401, 'Username atau password salah.');
+
+    const matches = await bcrypt.compare(password, user.password);
+    if (!matches) return sendError(res, 401, 'Username atau password salah.');
+
+    const token = signToken({ id: user.id, username: user.username, role: user.role });
+    return sendOk(res, {
       token,
       user: {
-        id           : user.id,
-        username     : user.username,
-        email        : user.email,
-        role         : user.role,
-        premium_until: user.premium_until
-      }
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        premium_until: user.premium_until,
+      },
+    });
+  } catch (err) {
+    console.error('login error:', err);
+    return sendError(res, 500, 'Gagal login.');
+  }
+}
+
+async function handleMe(req, res) {
+  const payload = getAuthUser(req);
+  if (!payload) return sendError(res, 401, 'Belum login.');
+
+  if (payload.role === 'admin' && payload.id === 0) {
+    return sendOk(res, {
+      user: { id: 0, username: payload.username, email: null, role: 'admin', premium_until: null },
     });
   }
 
-  if (action === 'me' && req.method === 'GET') {
-    return requireAuth(async (req, res) => {
-      if (req.user.role === ROLES.ADMIN) {
-        return sendSuccess(res, { id: 0, username: req.user.username, role: ROLES.ADMIN });
-      }
-      const result = await query(
-        'SELECT id, username, email, role, premium_until FROM users WHERE id = $1',
-        [req.user.id]
-      );
-      if (result.rows.length === 0) return notFound(res, 'User tidak ditemukan');
-      return sendSuccess(res, result.rows[0]);
-    })(req, res);
+  try {
+    const [user] = await sql`
+      SELECT id, username, email, role, premium_until FROM users WHERE id = ${payload.id}
+    `;
+    if (!user) return sendError(res, 404, 'User tidak ditemukan.');
+    return sendOk(res, { user });
+  } catch (err) {
+    console.error('me error:', err);
+    return sendError(res, 500, 'Gagal mengambil data user.');
   }
+}
 
-  return methodNotAllowed(res);
-};
+function isAdminCredential(username, password) {
+  return username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD;
+}

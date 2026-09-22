@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masuk — Snapmomen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="doodles"></div>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2>Selamat Datang</h2>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="Masukkan username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Masukkan password">
+    </div>
+    <div class="error-text" id="errText"></div>
+    <button class="btn btn-primary" style="width:100%" id="loginBtn">Masuk</button>
+    <p class="auth-foot">Belum punya akun? <a href="register.html">Daftar di sini</a></p>
+    <p class="auth-foot"><a href="index.html">Kembali ke beranda</a></p>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  const redirectTarget = new URLSearchParams(location.search).get('redirect') || 'index.html';
+
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+  async function doLogin() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const errText = document.getElementById('errText');
+    errText.textContent = '';
+
+    if (!username || !password) { errText.textContent = 'Isi username dan password.'; return; }
+
+    try {
+      const user = await loginUser(username, password);
+      location.href = user.role === 'admin' ? 'dashboard-admin.html' : redirectTarget;
+    } catch (err) {
+      errText.textContent = err.message || 'Login gagal.';
+    }
+  }
+</script>
+</body>
+</html>

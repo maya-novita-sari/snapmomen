@@ -1,146 +1,172 @@
-const { query } = require('./_lib/db');
-const { requireAuth, requireAdmin } = require('./_lib/auth');
-const { generateUniqueCode } = require('./_lib/code-generator');
-const { handlePreflight, sendSuccess, badRequest, notFound, methodNotAllowed } = require('./_lib/response');
-const {
-  ROLES, CODE_STATUS, MAX_CODES_PER_REQUEST, MIN_CODES_PER_REQUEST,
-  MAX_DURATION_DAYS, MAX_QUERY_LIMIT
-} = require('./_lib/constants');
+import { sql } from './_lib/db.js';
+import { requireAuth, requireAdmin } from './_lib/auth-middleware.js';
+import { generatePremiumCode } from './_lib/premium-code.js';
+import { handlePreflight, sendOk, sendError } from './_lib/response.js';
 
-module.exports = async (req, res) => {
+const MAX_CODES_PER_BATCH = 500;
+
+export default async function handler(req, res) {
   if (handlePreflight(req, res)) return;
 
-  const { action } = req.query;
+  const action = req.query.action;
 
-  if (action === 'status' && req.method === 'GET') {
-    return requireAuth(async (req, res) => {
-      if (req.user.role === ROLES.ADMIN) {
-        return sendSuccess(res, { isPremium: true, role: ROLES.ADMIN, daysLeft: 9999 });
-      }
-      const result = await query('SELECT premium_until FROM users WHERE id = $1', [req.user.id]);
-      if (result.rows.length === 0) return notFound(res, 'User tidak ditemukan');
+  if (action === 'status' && req.method === 'GET') return handleStatus(req, res);
+  if (action === 'redeem' && req.method === 'POST') return handleRedeem(req, res);
+  if (action === 'codes' && req.method === 'POST') return handleGenerateCodes(req, res);
+  if (action === 'codes' && req.method === 'GET') return handleListCodes(req, res);
+  if (action === 'history' && req.method === 'GET') return handleHistory(req, res);
+  if (action === 'codes' && req.method === 'DELETE') return handleDeleteCode(req, res);
 
-      const premiumUntil = result.rows[0].premium_until;
-      const now = new Date();
-      const isPremium = premiumUntil && new Date(premiumUntil) > now;
+  return sendError(res, 404, 'Endpoint tidak ditemukan.');
+}
 
-      let daysLeft = 0, hoursLeft = 0;
-      if (isPremium) {
-        const diff = new Date(premiumUntil) - now;
-        daysLeft = Math.floor(diff / (1000 * 60 * 60 * 24));
-        hoursLeft = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      }
+async function handleStatus(req, res) {
+  const user = requireAuth(req, res);
+  if (!user) return;
 
-      return sendSuccess(res, { isPremium, premium_until: premiumUntil, daysLeft, hoursLeft });
-    })(req, res);
+  if (user.role === 'admin') {
+    return sendOk(res, { premium: true, premium_until: null, is_admin: true });
   }
 
-  if (action === 'codes' && req.method === 'GET') {
-    return requireAdmin(async (req, res) => {
-      const { status, search } = req.query;
-      const cond = ['1=1'];
-      const params = [];
-      if (status) { params.push(status); cond.push(`c.status = $${params.length}`); }
-      if (search) { params.push(`%${search}%`); cond.push(`c.code ILIKE $${params.length}`); }
+  try {
+    const [row] = await sql`SELECT premium_until FROM users WHERE id = ${user.id}`;
+    const premiumUntil = row?.premium_until || null;
+    const isPremium = premiumUntil && new Date(premiumUntil) > new Date();
+    return sendOk(res, { premium: Boolean(isPremium), premium_until: premiumUntil });
+  } catch (err) {
+    console.error('premium status error:', err);
+    return sendError(res, 500, 'Gagal mengambil status premium.');
+  }
+}
 
-      const codes = await query(`
-        SELECT c.*, u.username AS used_by_username
-        FROM premium_codes c
-        LEFT JOIN users u ON c.used_by = u.id
-        WHERE ${cond.join(' AND ')}
-        ORDER BY c.created_at DESC
-        LIMIT ${MAX_QUERY_LIMIT}
-      `, params);
+async function handleRedeem(req, res) {
+  const user = requireAuth(req, res);
+  if (!user) return;
+  if (user.role === 'admin') return sendError(res, 400, 'Akun admin sudah punya akses penuh.');
 
-      const stats = await query(`
-        SELECT
-          COUNT(*) FILTER (WHERE status = 'active') AS active,
-          COUNT(*) FILTER (WHERE status = 'used') AS used,
-          COUNT(*) FILTER (WHERE status = 'expired') AS expired
-        FROM premium_codes
-      `);
-      const s = stats.rows[0];
+  const { code } = req.body || {};
+  if (!code) return sendError(res, 400, 'Kode premium wajib diisi.');
 
-      return sendSuccess(res, {
-        total: codes.rows.length,
-        active: parseInt(s.active),
-        used: parseInt(s.used),
-        expired: parseInt(s.expired),
-        codes: codes.rows
-      });
-    })(req, res);
+  try {
+    const [premiumCode] = await sql`
+      SELECT * FROM premium_codes WHERE code = ${code.trim().toUpperCase()}
+    `;
+    if (!premiumCode) return sendError(res, 404, 'Kode premium tidak ditemukan.');
+    if (premiumCode.status !== 'active') return sendError(res, 400, 'Kode premium sudah dipakai atau kedaluwarsa.');
+
+    const [userRow] = await sql`SELECT premium_until FROM users WHERE id = ${user.id}`;
+    const currentUntil = userRow?.premium_until && new Date(userRow.premium_until) > new Date()
+      ? new Date(userRow.premium_until)
+      : new Date();
+
+    const newUntil = await extendDate(currentUntil, premiumCode.duration_days);
+
+    await sql`UPDATE users SET premium_until = ${newUntil.toISOString()} WHERE id = ${user.id}`;
+    await sql`
+      UPDATE premium_codes SET
+        status = 'used', used_by = ${user.id}, used_at = NOW(), expires_at = ${newUntil.toISOString()}
+      WHERE id = ${premiumCode.id}
+    `;
+
+    return sendOk(res, { premium_until: newUntil.toISOString() });
+  } catch (err) {
+    console.error('premium redeem error:', err);
+    return sendError(res, 500, 'Gagal redeem kode premium.');
+  }
+}
+
+async function extendDate(baseDate, days) {
+  const result = new Date(baseDate);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+async function handleGenerateCodes(req, res) {
+  if (!requireAdmin(req, res)) return;
+
+  const { amount, duration_days } = req.body || {};
+  const parsedAmount = Number(amount);
+  const parsedDuration = Number(duration_days);
+
+  if (!parsedAmount || parsedAmount < 1 || parsedAmount > MAX_CODES_PER_BATCH) {
+    return sendError(res, 400, `Jumlah kode harus antara 1-${MAX_CODES_PER_BATCH}.`);
+  }
+  if (!parsedDuration || parsedDuration < 1) {
+    return sendError(res, 400, 'Durasi kode tidak valid.');
   }
 
-  if (action === 'codes' && req.method === 'POST') {
-    return requireAdmin(async (req, res) => {
-      const { count = 1, duration_days } = req.body;
-      if (!duration_days || duration_days < 1) return badRequest(res, 'Durasi wajib diisi minimal 1 hari');
-      if (duration_days > MAX_DURATION_DAYS) return badRequest(res, `Durasi maksimal ${MAX_DURATION_DAYS} hari`);
-      if (count < MIN_CODES_PER_REQUEST || count > MAX_CODES_PER_REQUEST) {
-        return badRequest(res, `Jumlah kode ${MIN_CODES_PER_REQUEST}-${MAX_CODES_PER_REQUEST}`);
-      }
-
-      const codes = [];
-      for (let i = 0; i < count; i++) {
-        const code = await generateUniqueCode();
-        await query('INSERT INTO premium_codes (code, duration_days) VALUES ($1, $2)', [code, duration_days]);
-        codes.push(code);
-      }
-
-      return sendSuccess(res, { count: codes.length, duration_days, codes }, 201);
-    })(req, res);
+  try {
+    const generatedCodes = [];
+    for (let i = 0; i < parsedAmount; i++) {
+      generatedCodes.push(await insertUniqueCode(parsedDuration));
+    }
+    return sendOk(res, { codes: generatedCodes });
+  } catch (err) {
+    console.error('code generate error:', err);
+    return sendError(res, 500, 'Gagal generate kode premium.');
   }
+}
 
-  if (action === 'codes-delete' && req.method === 'DELETE') {
-    return requireAdmin(async (req, res) => {
-      const { id } = req.query;
-      if (!id) return badRequest(res, 'ID wajib diisi');
-      await query('DELETE FROM premium_codes WHERE id = $1', [id]);
-      return sendSuccess(res, { ok: true });
-    })(req, res);
+async function insertUniqueCode(durationDays, attempt = 0) {
+  const code = generatePremiumCode();
+  try {
+    const [row] = await sql`
+      INSERT INTO premium_codes (code, duration_days)
+      VALUES (${code}, ${durationDays})
+      RETURNING id, code, duration_days, status, created_at
+    `;
+    return row;
+  } catch (err) {
+    if (attempt < 3) return insertUniqueCode(durationDays, attempt + 1); // retry on rare collision
+    throw err;
   }
+}
 
-  if (action === 'history' && req.method === 'GET') {
-    return requireAdmin(async (req, res) => {
-      const result = await query(`
-        SELECT c.id, c.code, c.duration_days, c.used_at, c.expires_at, c.status,
-               u.username AS used_by_username, u.email AS used_by_email
-        FROM premium_codes c
-        LEFT JOIN users u ON c.used_by = u.id
-        WHERE c.status IN ('used', 'expired')
-        ORDER BY c.used_at DESC
-        LIMIT ${MAX_QUERY_LIMIT}
-      `);
-      return sendSuccess(res, { total: result.rows.length, history: result.rows });
-    })(req, res);
+async function handleListCodes(req, res) {
+  if (!requireAdmin(req, res)) return;
+
+  try {
+    const codes = await sql`
+      SELECT id, code, duration_days, status, used_at, expires_at, created_at
+      FROM premium_codes
+      ORDER BY created_at DESC
+    `;
+    return sendOk(res, { codes });
+  } catch (err) {
+    console.error('code list error:', err);
+    return sendError(res, 500, 'Gagal mengambil daftar kode.');
   }
+}
 
-  if (action === 'redeem' && req.method === 'POST') {
-    return requireAuth(async (req, res) => {
-      if (req.user.role === ROLES.ADMIN) return badRequest(res, 'Admin tidak perlu redeem');
+async function handleDeleteCode(req, res) {
+  if (!requireAdmin(req, res)) return;
 
-      const { code } = req.body;
-      if (!code) return badRequest(res, 'Kode wajib diisi');
+  const id = Number(req.query.id);
+  if (!id) return sendError(res, 400, 'ID kode wajib diisi.');
 
-      const cek = await query('SELECT * FROM premium_codes WHERE code = $1', [code.toUpperCase().trim()]);
-      if (cek.rows.length === 0) return badRequest(res, 'Kode tidak valid');
-
-      const kode = cek.rows[0];
-      if (kode.status !== CODE_STATUS.ACTIVE) return badRequest(res, 'Kode sudah dipakai atau expired');
-
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + kode.duration_days);
-
-      await query(
-        `UPDATE premium_codes SET used_by = $1, used_at = NOW(), expires_at = $2, status = $3 WHERE id = $4`,
-        [req.user.id, expiresAt, CODE_STATUS.USED, kode.id]
-      );
-
-      await query('UPDATE users SET premium_until = $1 WHERE id = $2', [expiresAt, req.user.id]);
-
-      return sendSuccess(res, { ok: true, premium_until: expiresAt, daysLeft: kode.duration_days });
-    })(req, res);
+  try {
+    await sql`DELETE FROM premium_codes WHERE id = ${id}`;
+    return sendOk(res);
+  } catch (err) {
+    console.error('code delete error:', err);
+    return sendError(res, 500, 'Gagal menghapus kode.');
   }
+}
 
-  return methodNotAllowed(res);
-};
+async function handleHistory(req, res) {
+  if (!requireAdmin(req, res)) return;
+
+  try {
+    const history = await sql`
+      SELECT pc.code, pc.duration_days, pc.expires_at, u.username
+      FROM premium_codes pc
+      JOIN users u ON u.id = pc.used_by
+      WHERE pc.status = 'used'
+      ORDER BY pc.used_at DESC
+    `;
+    return sendOk(res, { history });
+  } catch (err) {
+    console.error('code history error:', err);
+    return sendError(res, 500, 'Gagal mengambil history kode.');
+  }
+}
