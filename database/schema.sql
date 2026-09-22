@@ -5,9 +5,9 @@ CREATE TABLE IF NOT EXISTS users (
   id             SERIAL PRIMARY KEY,
   username       VARCHAR(50) UNIQUE NOT NULL,
   email          VARCHAR(255) UNIQUE NOT NULL,
-  password       TEXT NOT NULL,               -- bcrypt hash
-  role           VARCHAR(20) NOT NULL DEFAULT 'customer', -- customer | admin
-  premium_until  TIMESTAMPTZ,                 -- NULL = not premium
+  password       TEXT NOT NULL,              
+  role           VARCHAR(20) NOT NULL DEFAULT 'customer', 
+  premium_until  TIMESTAMPTZ,               
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS frames (
   name        VARCHAR(100) NOT NULL,
   size        VARCHAR(10) NOT NULL CHECK (size IN ('5x15', '10x15')),
   type        VARCHAR(10) NOT NULL CHECK (type IN ('free', 'premium')),
-  image_url   TEXT NOT NULL,                  -- base64 data URL or external URL
+  image_url   TEXT NOT NULL,               
   is_active   BOOLEAN NOT NULL DEFAULT TRUE,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS photos (
   id          SERIAL PRIMARY KEY,
   user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE,
   frame_id    INTEGER REFERENCES frames(id) ON DELETE SET NULL,
-  image_data  TEXT NOT NULL,                  -- base64 JPEG
+  image_data  TEXT NOT NULL,                
   printed     BOOLEAN NOT NULL DEFAULT FALSE,
   expires_at  TIMESTAMPTZ NOT NULL,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS premium_codes (
   duration_days  INTEGER NOT NULL,
   used_by        INTEGER REFERENCES users(id) ON DELETE SET NULL,
   used_at        TIMESTAMPTZ,
-  expires_at     TIMESTAMPTZ,                 -- set when redeemed (used_at + duration)
-  status         VARCHAR(10) NOT NULL DEFAULT 'active', -- active | used | expired
+  expires_at     TIMESTAMPTZ,                
+  status         VARCHAR(10) NOT NULL DEFAULT 'active',
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -49,7 +49,6 @@ CREATE TABLE IF NOT EXISTS printer_settings (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Seed a single printer settings row used by the dashboard.
 INSERT INTO printer_settings (id, printer_name, connected)
 VALUES (1, NULL, FALSE)
 ON CONFLICT (id) DO NOTHING;
