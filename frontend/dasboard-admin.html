@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Admin — Snapmomen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div class="doodles"></div>
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="brand">⚙️ Admin</div>
+    <button class="side-link active" data-panel="panelDashboard">📊 Dashboard</button>
+    <button class="side-link" data-panel="panelFrames">🖼️ Bingkai</button>
+    <button class="side-link" data-panel="panelCodes">🎟️ Kode Premium</button>
+    <button class="side-link" data-panel="panelHistory">📜 History Kode</button>
+    <button class="side-link" data-panel="panelUsers">👥 User</button>
+    <button class="side-link" data-panel="panelPhotos">📸 Foto</button>
+    <button class="side-link" data-panel="panelPrinter">🖨️ Printer</button>
+    <div style="margin-top:auto;padding-top:20px">
+      <button class="btn btn-primary" style="width:100%;margin-bottom:8px" id="goStudioBtn">📷 Masuk Studio</button>
+      <button class="btn btn-outline" style="width:100%" id="logoutBtnAdmin">Keluar</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <p style="opacity:.7">Masuk sebagai <b id="adminName"></b></p>
+
+    <section class="admin-panel active" id="panelDashboard">
+      <h2>Dashboard</h2>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num" id="statPhotos">0</div><div class="lbl">Total Foto</div></div>
+        <div class="stat-card"><div class="num" id="statUsers">0</div><div class="lbl">User</div></div>
+        <div class="stat-card"><div class="num" id="statPremium">0</div><div class="lbl">Premium</div></div>
+        <div class="stat-card"><div class="num" id="statFree">0</div><div class="lbl">Free</div></div>
+        <div class="stat-card"><div class="num" id="statFrames">0</div><div class="lbl">Bingkai</div></div>
+        <div class="stat-card"><div class="num" id="statActiveCodes">0</div><div class="lbl">Kode Active</div></div>
+        <div class="stat-card"><div class="num" id="statUsedCodes">0</div><div class="lbl">Kode Used</div></div>
+      </div>
+    </section>
+
+    <section class="admin-panel" id="panelFrames">
+      <h2>Bingkai</h2>
+      <button class="btn btn-primary" id="addFrameBtn" style="margin-bottom:20px">+ Tambah Bingkai</button>
+      <div class="admin-frame-grid" id="adminFrameGrid"></div>
+    </section>
+
+    <section class="admin-panel" id="panelCodes">
+      <h2>Kode Premium</h2>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num" id="statActiveCodes2">-</div><div class="lbl">Active</div></div>
+        <div class="stat-card"><div class="num" id="statUsedCodes2">-</div><div class="lbl">Used</div></div>
+      </div>
+      <button class="btn btn-primary" id="generateCodeBtn" style="margin-bottom:20px">+ Generate Kode</button>
+      <table>
+        <thead><tr><th>Kode</th><th>Durasi</th><th>Status</th><th>Aksi</th></tr></thead>
+        <tbody id="codesTableBody"></tbody>
+      </table>
+    </section>
+
+    <section class="admin-panel" id="panelHistory">
+      <h2>History Kode</h2>
+      <table>
+        <thead><tr><th>Kode</th><th>User</th><th>Durasi</th><th>Expired</th></tr></thead>
+        <tbody id="historyTableBody"></tbody>
+      </table>
+    </section>
+
+    <section class="admin-panel" id="panelUsers">
+      <h2>User</h2>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num" id="userStatTotal">0</div><div class="lbl">Total</div></div>
+        <div class="stat-card"><div class="num" id="userStatPremium">0</div><div class="lbl">Premium</div></div>
+        <div class="stat-card"><div class="num" id="userStatFree">0</div><div class="lbl">Free</div></div>
+      </div>
+      <div class="filter-row">
+        <button class="active" data-user-filter="all">Semua</button>
+        <button data-user-filter="premium">Premium</button>
+        <button data-user-filter="free">Free</button>
+      </div>
+      <table>
+        <thead><tr><th>Username</th><th>Email</th><th>Status</th><th>Aksi</th></tr></thead>
+        <tbody id="usersTableBody"></tbody>
+      </table>
+    </section>
+
+    <section class="admin-panel" id="panelPhotos">
+      <h2>Foto</h2>
+      <p style="opacity:.7">Foto otomatis kehapus 3 hari setelah diambil.</p>
+      <div class="photos-grid" id="photosGrid"></div>
+    </section>
+
+    <section class="admin-panel" id="panelPrinter">
+      <h2>Printer</h2>
+      <div class="settings-card">
+        <p id="printerStatus">Belum terhubung</p>
+        <button class="btn btn-outline" id="connectPrinterBtn" style="margin-bottom:10px">🔌 Hubungkan Printer (WebUSB)</button>
+        <br>
+        <button class="btn btn-primary" id="testPrintBtn">🖨️ Test Print</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Modal: tambah/edit bingkai -->
+<div class="modal-overlay" id="frameModal">
+  <div class="modal-box">
+    <h3 id="frameModalTitle">Tambah Bingkai</h3>
+    <form id="frameForm">
+      <img id="frameImagePreview" class="frame-preview-img" alt="Preview bingkai">
+      <div class="field">
+        <label>Gambar Bingkai</label>
+        <input type="file" id="frameImageInput" accept="image/*">
+      </div>
+      <div class="field">
+        <label>Nama Bingkai</label>
+        <input type="text" id="frameNameInput" required>
+      </div>
+      <div class="field">
+        <label>Ukuran</label>
+        <select id="frameSizeInput">
+          <option value="5x15">5x15</option>
+          <option value="10x15">10x15</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Tipe</label>
+        <select id="frameTypeInput">
+          <option value="free">Gratis</option>
+          <option value="premium">Premium</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" data-close-frame-modal>Batal</button>
+        <button type="submit" class="btn btn-primary">Simpan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="codeModal">
+  <div class="modal-box">
+    <h3>Generate Kode Premium</h3>
+    <form id="codeForm">
+      <div class="field">
+        <label>Jumlah Kode (1-500)</label>
+        <input type="number" id="codeAmountInput" min="1" max="500" value="10" required>
+      </div>
+      <div class="field">
+        <label>Durasi</label>
+        <div class="radio-row">
+          <label><input type="radio" name="duration" value="7" checked> 7 hari</label>
+          <label><input type="radio" name="duration" value="30"> 30 hari</label>
+          <label><input type="radio" name="duration" value="90"> 90 hari</label>
+          <label><input type="radio" name="duration" value="365"> 365 hari</label>
+          <label><input type="radio" name="duration" value="custom"> Custom</label>
+        </div>
+        <input type="number" id="customDurationInput" placeholder="Jumlah hari" disabled>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" data-close-code-modal>Batal</button>
+        <button type="submit" class="btn btn-primary">Generate</button>
+      </div>
+    </form>
+    <div id="codeResultBox" style="display:none;margin-top:16px">
+      <p style="font-weight:700">Kode berhasil dibuat:</p>
+      <div id="codeResultList"></div>
+      <button class="btn btn-pink" id="copyAllCodesBtn" style="width:100%;margin-top:12px">Copy Semua</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/frame-manager.js"></script>
+<script src="js/print.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>
