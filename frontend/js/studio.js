@@ -1,14 +1,12 @@
-// Model = physical layout. 5x15 = "kiri" (3 jepretan, tiap foto dipasang 2x / 6 slot).
-// 10x15 = "kanan" (6 jepretan, 6 slot).
 const MODEL_CONFIG = {
   left:  { size: '5x15',  captures: 3, slots: 6 },
   right: { size: '10x15', captures: 6, slots: 6 },
 };
 
 const StudioState = {
-  model: null,        // 'left' | 'right'
-  frame: null,        // selected frame row from API
-  photoData: [],       // captured shot dataURLs
+  model    : null,        // 'left' | 'right'
+  frame    : null,        // selected frame row from API
+  photoData: [],          // captured shot dataURLs
   livePreviewSlots: [],
 };
 
@@ -25,7 +23,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await refreshPremiumStatus();
 });
 
-// ---------- Screens ----------
 
 function goToScreen(screenId) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
@@ -39,7 +36,6 @@ function startApp() {
   goToScreen('screen-frame');
 }
 
-// ---------- Welcome camera ----------
 
 async function startWelcomeCamera() {
   try {
@@ -56,7 +52,6 @@ async function startWelcomeCamera() {
   }
 }
 
-// ---------- Model & theme selection ----------
 
 function selectModel(model) {
   StudioState.model = model;
@@ -71,6 +66,13 @@ function renderThemeGrid() {
   const grid = document.getElementById('theme-grid');
   const config = MODEL_CONFIG[StudioState.model];
   const themes = getFramesBySize(config.size);
+  const nextBtn = document.getElementById('btn-next-theme');
+
+  if (!themes.length) {
+    grid.innerHTML = '<p style="opacity:.6">Belum ada bingkai untuk model ini. Hubungi admin.</p>';
+    nextBtn.disabled = true;
+    return;
+  }
 
   grid.innerHTML = themes.map((frame) => {
     const access = checkFrameAccess(frame);
@@ -81,13 +83,15 @@ function renderThemeGrid() {
         <img src="${frame.image_url}" alt="${escapeHtml(frame.name)}">
         ${lockBadge}
       </div>`;
-  }).join('') || '<p style="opacity:.6">Belum ada bingkai untuk model ini.</p>';
+  }).join('');
 
   grid.querySelectorAll('.theme-option').forEach((el) => {
     el.addEventListener('click', () => onThemeClick(Number(el.dataset.frameId), el.dataset.allowed === 'true'));
   });
 
-  if (!StudioState.frame && themes.length) {
+  nextBtn.disabled = !StudioState.frame;
+
+  if (!StudioState.frame) {
     const firstAllowed = themes.find((frame) => checkFrameAccess(frame).allowed);
     if (firstAllowed) onThemeClick(firstAllowed.id, true);
   }
@@ -106,6 +110,7 @@ function onThemeClick(frameId, allowed) {
   overlay.style.display = 'block';
 
   document.getElementById('theme-preview').style.backgroundImage = `url('${frame.image_url}')`;
+  document.getElementById('btn-next-theme').disabled = false;
   renderThemeGrid();
 }
 
@@ -120,6 +125,8 @@ function setFilter(type) {
 }
 
 async function startCameraSession() {
+  if (!StudioState.frame) return;
+
   StudioState.photoData = [];
   photoTakenCount = 0;
   isCountingDown = false;
@@ -392,7 +399,6 @@ function drawImageCover(ctx, img, x, y, w, h) {
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 }
 
-// ---------- Simpan (save + auto print) ----------
 
 async function saveAndPrintResult() {
   const canvas = document.getElementById('result-canvas');

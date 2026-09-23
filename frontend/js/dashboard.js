@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderFramesGrid();
 });
 
-// ---------- Sidebar ----------
 
 function setupSidebarNavigation() {
   document.querySelectorAll('.side-link[data-panel]').forEach((link) => {
@@ -41,7 +40,6 @@ function setupLogout() {
   });
 }
 
-// ---------- Panel: Dashboard ----------
 
 async function loadStats() {
   try {
@@ -58,7 +56,6 @@ async function loadStats() {
   }
 }
 
-// ---------- Panel: Bingkai ----------
 
 function setupFrameModal() {
   document.getElementById('addFrameBtn').addEventListener('click', () => openFrameModal());
@@ -159,7 +156,6 @@ async function handleFrameDelete(id) {
   }
 }
 
-// ---------- Panel: Kode Premium ----------
 
 function setupCodeModal() {
   document.getElementById('generateCodeBtn').addEventListener('click', () => {
@@ -264,7 +260,6 @@ async function handleDeleteCode(id) {
   }
 }
 
-// ---------- Panel: History Kode ----------
 
 async function loadHistory() {
   try {
@@ -282,7 +277,6 @@ async function loadHistory() {
   }
 }
 
-// ---------- Panel: User ----------
 
 let _usersCache = [];
 
@@ -344,7 +338,6 @@ async function handleDeleteUser(id) {
   }
 }
 
-// ---------- Panel: Foto ----------
 
 async function loadPhotos() {
   try {
@@ -354,6 +347,9 @@ async function loadPhotos() {
         <img src="${p.image_data}" alt="Foto ${escapeHtml(p.username || '')}">
         <div class="pc-meta">${escapeHtml(p.username || 'Guest')}</div>
         <div class="pc-meta">Hapus otomatis: ${formatIndonesianDate(p.expires_at)}</div>
+        <button class="btn ${p.featured ? 'btn-primary' : 'btn-outline'} btn-sm" data-toggle-featured="${p.id}" data-featured="${p.featured}">
+          ${p.featured ? '★ Di Galeri' : '☆ Tampilkan di Galeri'}
+        </button>
         <button class="btn btn-danger btn-sm" data-delete-photo="${p.id}">Hapus</button>
       </div>
     `).join('') || '<p style="opacity:.6">Belum ada foto.</p>';
@@ -361,8 +357,23 @@ async function loadPhotos() {
     document.querySelectorAll('[data-delete-photo]').forEach((btn) => {
       btn.addEventListener('click', () => handleDeletePhoto(Number(btn.dataset.deletePhoto)));
     });
+    document.querySelectorAll('[data-toggle-featured]').forEach((btn) => {
+      btn.addEventListener('click', () => handleToggleFeatured(
+        Number(btn.dataset.toggleFeatured), btn.dataset.featured !== 'true',
+      ));
+    });
   } catch (err) {
     showToast(err.message || 'Gagal memuat foto.');
+  }
+}
+
+async function handleToggleFeatured(id, nextFeatured) {
+  try {
+    await apiRequest(`/photos?id=${id}`, { method: 'PUT', body: { featured: nextFeatured } });
+    showToast(nextFeatured ? 'Foto ditambahkan ke galeri.' : 'Foto dihapus dari galeri.');
+    await loadPhotos();
+  } catch (err) {
+    showToast(err.message || 'Gagal memperbarui galeri.');
   }
 }
 
@@ -378,7 +389,6 @@ async function handleDeletePhoto(id) {
   }
 }
 
-// ---------- Panel: Printer ----------
 
 function setupPrinterPanel() {
   refreshPrinterStatus();
@@ -402,7 +412,7 @@ async function handleConnectPrinter() {
     const device = await connectUsbPrinter();
     await apiRequest('/printer', {
       method: 'POST',
-      body: { printer_name: device.productName || 'USB Printer', connected: true },
+      body  : { printer_name: device.productName || 'USB Printer', connected: true },
     });
     showToast('Printer terhubung.');
     await refreshPrinterStatus();

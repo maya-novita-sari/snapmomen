@@ -1,4 +1,3 @@
-/* ===== Design tokens ===== */
 :root{
   --cream:#FDF1DE;
   --cream-2:#FBE7C6;
@@ -24,7 +23,6 @@ h1,h2,h3,.brand,.btn{font-family:var(--font-display);}
 a{color:inherit}
 img{max-width:100%;display:block}
 
-/* ===== Background doodles ===== */
 .doodles{position:fixed;inset:0;pointer-events:none;z-index:0;
   background-image:
     radial-gradient(circle at 8% 20%, var(--pink) 0 6px, transparent 7px),
@@ -34,7 +32,6 @@ img{max-width:100%;display:block}
   opacity:.55;
 }
 
-/* ===== Topbar ===== */
 .topbar{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;
   padding:18px 5vw;}
 .brand{font-size:1.5rem;font-weight:700;color:var(--ink)}
@@ -42,6 +39,7 @@ img{max-width:100%;display:block}
 .nav-actions{display:flex;gap:10px;align-items:center}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;
+  text-decoration:none;
   padding:12px 26px;border-radius:999px;font-weight:700;font-size:1rem;transition:transform .15s ease, box-shadow .15s ease;}
 .btn:hover{transform:translateY(-2px)}
 .btn:active{transform:translateY(0)}
@@ -55,7 +53,6 @@ img{max-width:100%;display:block}
 .btn-sm{padding:8px 16px;font-size:.85rem;border-radius:14px}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
-/* ===== Hero ===== */
 .hero{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;
   gap:40px;padding:40px 8vw 80px;flex-wrap:wrap;}
 .hero-copy{max-width:480px}
@@ -66,7 +63,6 @@ img{max-width:100%;display:block}
 .cam-badge{position:absolute;bottom:-18px;right:-18px;background:var(--yellow);width:56px;height:56px;
   border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;box-shadow:var(--shadow)}
 
-/* ===== Sections ===== */
 .section{position:relative;z-index:1;padding:60px 8vw;}
 .section-title{font-size:2rem;margin:0 0 8px}
 .section-sub{opacity:.75;margin:0 0 32px}
@@ -86,7 +82,6 @@ img{max-width:100%;display:block}
 
 footer{text-align:center;padding:30px;opacity:.6;font-size:.85rem;position:relative;z-index:1}
 
-/* ===== Modal ===== */
 .modal-overlay{position:fixed;inset:0;background:rgba(59,46,42,.55);display:none;align-items:center;
   justify-content:center;z-index:50;padding:20px}
 .modal-overlay.open{display:flex}
@@ -95,7 +90,6 @@ footer{text-align:center;padding:30px;opacity:.6;font-size:.85rem;position:relat
 .modal-box h3{margin-top:0}
 .modal-box .modal-actions{display:flex;gap:10px;justify-content:center;margin-top:22px}
 
-/* ===== Auth pages ===== */
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;z-index:1;padding:20px}
 .auth-card{background:var(--white);border-radius:var(--radius-lg);padding:40px;width:100%;max-width:400px;box-shadow:var(--shadow)}
 .auth-card h2{margin-top:0;text-align:center}
@@ -115,3 +109,6 @@ footer{text-align:center;padding:30px;opacity:.6;font-size:.85rem;position:relat
   box-shadow:var(--shadow);font-size:1.1rem}
 
 @media(max-width:640px){.hero{padding-top:10px}.section{padding:40px 5vw}}
+
+.nav-premium-badge{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:14px;
+  background:var(--yellow);color:var(--ink);font-weight:700;font-size:.85rem}

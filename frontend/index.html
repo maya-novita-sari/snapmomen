@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Snapmomen - Studio Foto Instan</title>
+<title>Snapmomen — Studio Foto Instan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
@@ -24,13 +24,13 @@
   </div>
   <div class="hero-photo">
     <img id="heroFrameImg" src="" alt="Contoh bingkai" style="background:#fff">
-    <div class="cam-badge"></div>
-  </div>
+  <img class="cam-badge" src="assets/images/badge-anim.gif" alt="">
+</div>
 </section>
 
 <section class="section">
   <h2 class="section-title">Galeri Hasil Foto</h2>
-  <p class="section-sub">Rekam momen terbaikmu agar tak terlupakan</p>
+  <p class="section-sub">Beberapa hasil dari studio Snapmomen.</p>
   <div class="gallery-grid" id="galleryGrid"></div>
 </section>
 
@@ -75,9 +75,14 @@
         document.getElementById('heroFrameImg').src = frames[0].image_url;
       }
 
-      const galleryFrames = frames.slice(0, 8);
-      document.getElementById('galleryGrid').innerHTML = galleryFrames.map((f) =>
-        `<img src="${f.image_url}" alt="${f.name}">`).join('') || '<p style="opacity:.6">Belum ada galeri.</p>';
+      try {
+        const { photos } = await apiRequest('/photos?gallery=1', { auth: false });
+        document.getElementById('galleryGrid').innerHTML = photos.map((p) =>
+          `<img src="${p.image_data}" alt="Hasil foto Snapmomen">`).join('')
+          || '<p style="opacity:.6">Belum ada foto di galeri.</p>';
+      } catch {
+        document.getElementById('galleryGrid').innerHTML = '<p style="opacity:.6">Belum ada foto di galeri.</p>';
+      }
 
       document.getElementById('frameShowcase').innerHTML = frames.map((f) => `
         <div class="frame-card">

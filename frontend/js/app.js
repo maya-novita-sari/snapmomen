@@ -12,8 +12,7 @@ function showToast(message) {
   toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2600);
 }
 
-// Renders Login/Register or Dashboard/Logout links into the given container selector.
-function renderNavActions(selector) {
+async function renderNavActions(selector) {
   const container = document.querySelector(selector);
   if (!container) return;
 
@@ -26,10 +25,10 @@ function renderNavActions(selector) {
     return;
   }
 
-  const dashboardHref = user.role === 'admin' ? 'dashboard-admin.html' : 'studio.html';
+  const middleButton = await buildNavMiddleButton(user);
   container.innerHTML = `
     <span class="nav-username">👋 ${escapeHtml(user.username)}</span>
-    <a href="${dashboardHref}" class="btn btn-outline btn-sm">Dashboard</a>
+    ${middleButton}
     <button class="btn btn-primary btn-sm" id="navLogoutBtn">Keluar</button>
   `;
   document.getElementById('navLogoutBtn').addEventListener('click', () => {
@@ -38,7 +37,22 @@ function renderNavActions(selector) {
   });
 }
 
-// Redirects to login.html if not authenticated. Returns the current user, or null.
+async function buildNavMiddleButton(user) {
+  if (user.role === 'admin') {
+    return '<a href="dashboard-admin.html" class="btn btn-outline btn-sm">Dashboard</a>';
+  }
+
+  try {
+    const data = await apiRequest('/premium?action=status');
+    if (data.premium && data.premium_until) {
+      return `<span class="nav-premium-badge">👑 s.d. ${formatIndonesianDate(data.premium_until)}</span>`;
+    }
+  } catch {
+  }
+
+  return '<a href="premium.html" class="btn btn-primary btn-sm">Join Premium</a>';
+}
+
 function requireLoggedIn(redirectTarget) {
   const user = getStoredUser();
   if (!user) {
