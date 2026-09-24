@@ -28,7 +28,7 @@ async function renderNavActions(selector) {
 
   const middleButton = await buildNavMiddleButton(user);
   container.innerHTML = `
-    <span class="nav-username">👋 ${escapeHtml(user.username)}</span>
+    <span class="nav-username">${escapeHtml(user.username)}</span>
     ${middleButton}
     <button class="btn btn-primary btn-sm" id="navLogoutBtn">Keluar</button>
   `;
@@ -49,7 +49,7 @@ async function buildNavMiddleButton(user) {
     const data = await apiRequest('/premium?action=status');
     if (data.premium && data.premium_until) {
       const { days, hours } = getRemainingDaysHours(data.premium_until);
-      return `<span class="nav-premium-badge">⏱️ ${days} hari ${hours} jam</span>`;
+      return `<span class="nav-premium-badge">${days} hari ${hours} jam</span>`;
     }
   } catch {
     // ignore, fall back to the default Join Premium button below

@@ -62,65 +62,182 @@ async function loadStats() {
 
 // ---------- Panel: Bingkai ----------
 
+const FRAME_IMAGE_MAX_SIDE = 1800;
+const FRAME_IMAGE_MAX_CHARS = 3500000;
+const FRAME_IMAGE_MIN_SCALE = 0.3;
+const FRAME_SAVE_LABEL = 'Simpan';
+const FRAME_SAVING_LABEL = 'Menyimpan...';
+const FRAME_PROCESSING_LABEL = 'Memproses gambar...';
+
+let isSavingFrame = false;
+let frameImageTask = Promise.resolve();
+
 function setupFrameModal() {
   document.getElementById('addFrameBtn').addEventListener('click', () => openFrameModal());
   document.getElementById('frameForm').addEventListener('submit', handleFrameSubmit);
-  document.getElementById('frameImageInput').addEventListener('change', previewFrameImage);
+  document.getElementById('frameImageInput').addEventListener('change', handleFrameImageChange);
   document.querySelectorAll('[data-close-frame-modal]').forEach((btn) => {
-    btn.addEventListener('click', () => document.getElementById('frameModal').classList.remove('open'));
+    btn.addEventListener('click', handleFrameModalCancel);
   });
+}
+
+function closeFrameModal() {
+  document.getElementById('frameModal').classList.remove('open');
+}
+
+function handleFrameModalCancel() {
+  if (isSavingFrame) return;
+  closeFrameModal();
+}
+
+function setFrameSaveButton(label, isDisabled) {
+  const button = document.getElementById('frameSaveBtn');
+  button.textContent = label;
+  button.disabled = isDisabled;
+}
+
+function showFramePreview(source) {
+  const preview = document.getElementById('frameImagePreview');
+  preview.src = source || '';
+  preview.style.display = source ? 'block' : 'none';
 }
 
 function openFrameModal(frame = null) {
   const form = document.getElementById('frameForm');
   form.reset();
   form.dataset.editId = frame?.id || '';
+  form.dataset.imageUrl = '';
+  frameImageTask = Promise.resolve();
+
   document.getElementById('frameModalTitle').textContent = frame ? 'Edit Bingkai' : 'Tambah Bingkai';
   document.getElementById('frameNameInput').value = frame?.name || '';
   document.getElementById('frameSizeInput').value = frame?.size || '5x15';
   document.getElementById('frameTypeInput').value = frame?.type || 'free';
-  document.getElementById('frameImagePreview').src = frame?.image_url || '';
-  document.getElementById('frameImagePreview').style.display = frame ? 'block' : 'none';
-  form.dataset.imageUrl = frame?.image_url || '';
+  showFramePreview(frame?.image_url);
+  setFrameSaveButton(FRAME_SAVE_LABEL, false);
   document.getElementById('frameModal').classList.add('open');
 }
 
-function previewFrameImage(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    document.getElementById('frameImagePreview').src = reader.result;
-    document.getElementById('frameImagePreview').style.display = 'block';
-    document.getElementById('frameForm').dataset.imageUrl = reader.result;
-  };
-  reader.readAsDataURL(file);
+// ---------- Panel: Bingkai (proses gambar) ----------
+
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('File gambar tidak bisa dibaca.'));
+    };
+    image.src = objectUrl;
+  });
 }
 
-async function handleFrameSubmit(event) {
-  event.preventDefault();
-  const form = event.target;
-  const payload = {
+function renderImageAsPng(image, scale) {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(image.naturalWidth * scale);
+  canvas.height = Math.round(image.naturalHeight * scale);
+  canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/png');
+}
+
+// Keeps PNG transparency but shrinks the payload so the server accepts it.
+async function convertImageToUploadDataUrl(file) {
+  const image = await loadImageFromFile(file);
+  const longestSide = Math.max(image.naturalWidth, image.naturalHeight);
+  let scale = Math.min(1, FRAME_IMAGE_MAX_SIDE / longestSide);
+  let dataUrl = renderImageAsPng(image, scale);
+
+  while (dataUrl.length > FRAME_IMAGE_MAX_CHARS && scale > FRAME_IMAGE_MIN_SCALE) {
+    scale *= 0.8;
+    dataUrl = renderImageAsPng(image, scale);
+  }
+  if (dataUrl.length > FRAME_IMAGE_MAX_CHARS) {
+    throw new Error('Gambar terlalu besar. Gunakan gambar dengan ukuran lebih kecil.');
+  }
+  return dataUrl;
+}
+
+async function handleFrameImageChange(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const form = document.getElementById('frameForm');
+  setFrameSaveButton(FRAME_PROCESSING_LABEL, true);
+  frameImageTask = convertImageToUploadDataUrl(file);
+
+  try {
+    const dataUrl = await frameImageTask;
+    form.dataset.imageUrl = dataUrl;
+    showFramePreview(dataUrl);
+  } catch (err) {
+    frameImageTask = Promise.resolve();
+    event.target.value = '';
+    showToast(err.message || 'Gagal memproses gambar.');
+  } finally {
+    setFrameSaveButton(FRAME_SAVE_LABEL, false);
+  }
+}
+
+// ---------- Panel: Bingkai (simpan) ----------
+
+function buildFramePayload(form) {
+  return {
     name: document.getElementById('frameNameInput').value.trim(),
     size: document.getElementById('frameSizeInput').value,
     type: document.getElementById('frameTypeInput').value,
-    image_url: form.dataset.imageUrl,
+    image_url: form.dataset.imageUrl || undefined,
   };
+}
 
+function assertFramePayloadValid(payload, editId) {
+  if (!payload.name) throw new Error('Nama bingkai wajib diisi.');
+  if (!editId && !payload.image_url) throw new Error('Pilih gambar bingkai terlebih dahulu.');
+}
+
+async function submitFrame(editId, payload) {
+  if (editId) {
+    await apiRequest(`/frames?id=${editId}`, { method: 'PUT', body: payload });
+    return 'Bingkai diperbarui.';
+  }
+  await apiRequest('/frames', { method: 'POST', body: payload });
+  return 'Bingkai ditambahkan.';
+}
+
+async function reloadFramesView() {
   try {
-    if (form.dataset.editId) {
-      await apiRequest(`/frames?id=${form.dataset.editId}`, { method: 'PUT', body: payload });
-      showToast('Bingkai diperbarui.');
-    } else {
-      await apiRequest('/frames', { method: 'POST', body: payload });
-      showToast('Bingkai ditambahkan.');
-    }
-    document.getElementById('frameModal').classList.remove('open');
     await loadFrames();
     renderFramesGrid();
     await loadStats();
   } catch (err) {
+    showToast('Gagal memuat ulang daftar bingkai. Muat ulang halaman.');
+  }
+}
+
+async function handleFrameSubmit(event) {
+  event.preventDefault();
+  if (isSavingFrame) return;
+
+  const form = event.currentTarget;
+  isSavingFrame = true;
+  setFrameSaveButton(FRAME_SAVING_LABEL, true);
+
+  try {
+    await frameImageTask;
+    const payload = buildFramePayload(form);
+    assertFramePayloadValid(payload, form.dataset.editId);
+    const successMessage = await submitFrame(form.dataset.editId, payload);
+    closeFrameModal();
+    showToast(successMessage);
+    await reloadFramesView();
+  } catch (err) {
     showToast(err.message || 'Gagal menyimpan bingkai.');
+  } finally {
+    isSavingFrame = false;
+    setFrameSaveButton(FRAME_SAVE_LABEL, false);
   }
 }
 
@@ -132,7 +249,7 @@ function renderFramesGrid() {
     <div class="admin-frame-card">
       <img src="${frame.image_url}" alt="${escapeHtml(frame.name)}">
       <div class="afc-name">${escapeHtml(frame.name)}</div>
-      <div class="afc-meta">${frame.size} · ${frame.type === 'free' ? 'Gratis' : '👑 Premium'}</div>
+      <div class="afc-meta">${frame.size} · ${frame.type === 'free' ? 'Gratis' : 'Premium'}</div>
       <div class="afc-actions">
         <button class="btn btn-outline btn-sm" data-edit="${frame.id}">Edit</button>
         <button class="btn btn-danger btn-sm" data-delete="${frame.id}">Hapus</button>
@@ -153,9 +270,7 @@ async function handleFrameDelete(id) {
   try {
     await apiRequest(`/frames?id=${id}`, { method: 'DELETE' });
     showToast('Bingkai dihapus.');
-    await loadFrames();
-    renderFramesGrid();
-    await loadStats();
+    await reloadFramesView();
   } catch (err) {
     showToast(err.message || 'Gagal menghapus bingkai.');
   }
@@ -326,7 +441,7 @@ function renderUsersTable(filter) {
     const premium = isPremium(u);
     const daysLeft = premium ? Math.ceil((new Date(u.premium_until) - new Date()) / 86400000) : null;
     const statusHtml = premium
-      ? `<span class="status-tag status-used">👑 Premium</span> <span style="opacity:.6;font-size:.78rem">${daysLeft} hari lagi</span>`
+      ? `<span class="status-tag status-used">Premium</span> <span style="opacity:.6;font-size:.78rem">${daysLeft} hari lagi</span>`
       : '<span class="status-tag status-active">Gratis</span>';
     return `
       <tr>
@@ -366,7 +481,7 @@ async function loadPhotos() {
         <div class="pc-meta">${escapeHtml(p.username || 'Guest')}</div>
         <div class="pc-meta">Hapus otomatis: ${formatIndonesianDate(p.expires_at)}</div>
         <button class="btn ${p.featured ? 'btn-primary' : 'btn-outline'} btn-sm" data-toggle-featured="${p.id}" data-featured="${p.featured}">
-          ${p.featured ? '★ Di Galeri' : '☆ Tampilkan di Galeri'}
+          ${p.featured ? 'Di Galeri' : 'Tampilkan di Galeri'}
         </button>
         <button class="btn btn-danger btn-sm" data-delete-photo="${p.id}">Hapus</button>
       </div>

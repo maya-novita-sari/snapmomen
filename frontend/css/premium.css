@@ -4,7 +4,6 @@
 .premium-price{font-size:2.4rem;font-weight:800;font-family:var(--font-display);margin:6px 0 20px}
 .premium-perks{text-align:left;margin:0 0 26px;padding:0;list-style:none}
 .premium-perks li{padding:8px 0;border-bottom:1px dashed var(--cream-2)}
-.premium-perks li:before{content:"✓ ";color:#1E7A64;font-weight:800}
 
 .va-box{background:var(--cream);border-radius:var(--radius-md);padding:22px;margin:20px 0;display:none}
 .va-box.show{display:block}

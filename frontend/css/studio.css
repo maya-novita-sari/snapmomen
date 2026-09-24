@@ -179,7 +179,7 @@ html, body {
 .theme-option {
     position:relative;
     width:100%;
-    aspect-ratio:2/3;
+    aspect-ratio:4/5;
     cursor:pointer;
     transition:all 0.2s;
     border-radius:8px;
@@ -212,7 +212,7 @@ html, body {
     top:0; left:0;
     width:100%;
     height:100%;
-    object-fit:cover;
+    object-fit:contain;
     display:block;
     background:#f0f0f0;
 }
@@ -256,14 +256,6 @@ html, body {
     border-radius:6px;
     border:1px solid rgba(0,0,0,0.08);
     box-sizing:border-box;
-}
-
-.icon-camera-theme {
-    position:absolute;
-    width:90px; height:auto;
-    bottom:-15px; left:-30px;
-    z-index:3;
-    transform:rotate(-10deg);
 }
 
 .theme-actions {
@@ -347,14 +339,6 @@ html, body {
     0%   { transform:scale(1);    opacity:1; }
     50%  { transform:scale(1.15); opacity:0.9; }
     100% { transform:scale(1);    opacity:1; }
-}
-
-.icon-camera-session {
-    position:absolute;
-    width:90px; height:auto;
-    bottom:60px; left:-40px;
-    z-index:3;
-    transform:rotate(-10deg);
 }
 
 .filter-toggle {
@@ -541,6 +525,50 @@ html, body {
     display:flex; gap:10px;
 }
 
+/* TOMBOL STUDIO: Start, Next, Back */
+.btn-start, .btn-next, .btn-back {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:14px 40px;
+    border:none;
+    border-radius:50px;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+    font-size:1rem;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    cursor:pointer;
+    transition:transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-start, .btn-next {
+    background:#5FD3C4;
+    color:#12332E;
+    box-shadow:0 5px 0 #3DA396;
+}
+.btn-back {
+    background:#FF9EC4;
+    color:#5A1436;
+    box-shadow:0 5px 0 #D9709E;
+}
+.btn-start:not(:disabled):hover,
+.btn-next:not(:disabled):hover,
+.btn-back:not(:disabled):hover {
+    transform:translateY(-2px);
+}
+.btn-start:not(:disabled):active,
+.btn-next:not(:disabled):active,
+.btn-back:not(:disabled):active {
+    transform:translateY(5px);
+    box-shadow:none;
+}
+.btn-start:disabled, .btn-next:disabled, .btn-back:disabled {
+    opacity:0.5;
+    cursor:not-allowed;
+}
+@media (max-width:480px) {
+    .btn-start, .btn-next, .btn-back { padding:12px 28px; font-size:0.9rem; }
+    .frame-nav-actions .btn { padding:12px 28px; }
+}
+
 /* RESPONSIVE */
 @media (max-width:950px) {
     .welcome-layout { flex-direction:column; gap:30px; padding:20px; }
@@ -562,12 +590,10 @@ html, body {
         height:380px;
     }
     .theme-preview { width:170px; }
-    .icon-camera-theme { width:60px; }
 
     .photo-session-layout { flex-direction:column; gap:20px; }
     .camera-container { width:340px; }
     .live-frame-preview { width:200px; }
-    .icon-camera-session { width:60px; left:-20px; bottom:50px; }
 
     .btn-capture-circle { width:75px; height:75px; }
     .capture-icon { width:40px; height:40px; }

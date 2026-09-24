@@ -76,7 +76,7 @@ function renderThemeGrid() {
 
   grid.innerHTML = themes.map((frame) => {
     const access = checkFrameAccess(frame);
-    const lockBadge = frame.type === 'premium' ? '<span class="theme-lock">🔒</span>' : '';
+    const lockBadge = frame.type === 'premium' ? '<span class="theme-lock"></span>' : '';
     const selectedClass = StudioState.frame?.id === frame.id ? 'selected' : '';
     return `
       <div class="theme-option ${selectedClass}" data-frame-id="${frame.id}" data-allowed="${access.allowed}">
