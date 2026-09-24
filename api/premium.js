@@ -158,10 +158,10 @@ async function handleHistory(req, res) {
 
   try {
     const history = await sql`
-      SELECT pc.code, pc.duration_days, pc.expires_at, u.username
+      SELECT pc.code, pc.duration_days, pc.expires_at, pc.status, u.username
       FROM premium_codes pc
       JOIN users u ON u.id = pc.used_by
-      WHERE pc.status = 'used'
+      WHERE pc.status IN ('used', 'expired')
       ORDER BY pc.used_at DESC
     `;
     return sendOk(res, { history });

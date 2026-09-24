@@ -44,12 +44,6 @@ function renderPremiumStatus(data) {
   document.getElementById('premiumExpiry').textContent = formatIndonesianDate(data.premium_until);
 }
 
-function getRemainingDaysHours(untilIso) {
-  const diffMs = new Date(untilIso).getTime() - Date.now();
-  const totalHours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
-  return { days: Math.floor(totalHours / 24), hours: totalHours % 24 };
-}
-
 async function handleRedeem() {
   const codeInput = document.getElementById('codeInput');
   const errText = document.getElementById('redeemError');

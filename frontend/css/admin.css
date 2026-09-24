@@ -33,6 +33,7 @@ th{background:var(--cream-2);font-family:var(--font-display)}
 @media(max-width:800px){.admin-sidebar{position:fixed;bottom:0;left:0;right:0;top:auto;width:100%;flex-direction:row;
   overflow-x:auto;padding:10px;z-index:10}.admin-main{padding-bottom:90px}}
 
+/* ===== Additions: modals, codes, users, photos ===== */
 .afc-name{font-weight:700;font-size:.9rem;margin-top:4px}
 .afc-meta{opacity:.65;font-size:.78rem;margin-bottom:8px}
 .afc-actions{display:flex;gap:6px;justify-content:center}
@@ -55,9 +56,12 @@ th{background:var(--cream-2);font-family:var(--font-display)}
 .photo-card img{aspect-ratio:3/4;object-fit:cover;border-radius:8px;margin-bottom:6px}
 .pc-meta{font-size:.75rem;opacity:.7;margin-bottom:4px}
 
-#frameModal .modal-box,#codeModal .modal-box{max-width:460px;text-align:left}
-.frame-preview-img{width:100%;aspect-ratio:4/5;object-fit:contain;background:var(--cream);
-  border-radius:12px;margin-bottom:12px;display:none}
+/* Modal (frame/code) reuses .modal-overlay/.modal-box from style.css but wider */
+#frameModal .modal-box,#codeModal .modal-box{max-width:460px;width:100%;text-align:left;
+  max-height:90vh;overflow-y:auto;display:flex;flex-direction:column}
+.frame-preview-img{max-width:200px;max-height:200px;width:auto;height:auto;object-fit:contain;
+  background:var(--cream);border-radius:12px;margin:0 auto 12px;display:none}
+.modal-actions{position:sticky;bottom:0;background:var(--white);padding-top:14px;margin-top:14px}
 .radio-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px}
 .radio-row label{display:flex;align-items:center;gap:6px;font-weight:600;font-size:.9rem}
 

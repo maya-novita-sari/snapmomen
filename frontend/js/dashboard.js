@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderFramesGrid();
 });
 
+// ---------- Sidebar ----------
 
 function setupSidebarNavigation() {
   document.querySelectorAll('.side-link[data-panel]').forEach((link) => {
@@ -40,6 +41,7 @@ function setupLogout() {
   });
 }
 
+// ---------- Panel: Dashboard ----------
 
 async function loadStats() {
   try {
@@ -51,11 +53,14 @@ async function loadStats() {
     document.getElementById('statFrames').textContent = stats.total_frames;
     document.getElementById('statActiveCodes').textContent = stats.active_codes;
     document.getElementById('statUsedCodes').textContent = stats.used_codes;
+    document.getElementById('statActiveCodes2').textContent = stats.active_codes;
+    document.getElementById('statUsedCodes2').textContent = stats.used_codes;
   } catch (err) {
     showToast(err.message || 'Gagal memuat statistik.');
   }
 }
 
+// ---------- Panel: Bingkai ----------
 
 function setupFrameModal() {
   document.getElementById('addFrameBtn').addEventListener('click', () => openFrameModal());
@@ -156,6 +161,7 @@ async function handleFrameDelete(id) {
   }
 }
 
+// ---------- Panel: Kode Premium ----------
 
 function setupCodeModal() {
   document.getElementById('generateCodeBtn').addEventListener('click', () => {
@@ -221,7 +227,8 @@ async function loadCodes() {
 
 function renderCodesTable(codes) {
   const tbody = document.getElementById('codesTableBody');
-  tbody.innerHTML = codes.map((c) => `
+  const activeCodes = codes.filter((c) => c.status === 'active');
+  tbody.innerHTML = activeCodes.map((c) => `
     <tr>
       <td>${c.code}</td>
       <td>${c.duration_days} hari</td>
@@ -231,7 +238,7 @@ function renderCodesTable(codes) {
         <button class="btn btn-danger btn-sm" data-delete-code="${c.id}">Hapus</button>
       </td>
     </tr>
-  `).join('') || '<tr><td colspan="4" style="opacity:.6">Belum ada kode.</td></tr>';
+  `).join('') || '<tr><td colspan="4" style="opacity:.6">Belum ada kode aktif.</td></tr>';
 
   tbody.querySelectorAll('[data-copy-code]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -260,6 +267,7 @@ async function handleDeleteCode(id) {
   }
 }
 
+// ---------- Panel: History Kode ----------
 
 async function loadHistory() {
   try {
@@ -269,14 +277,16 @@ async function loadHistory() {
         <td>${h.code}</td>
         <td>${escapeHtml(h.username)}</td>
         <td>${h.duration_days} hari</td>
+        <td><span class="status-tag status-${h.status}">${statusLabel(h.status)}</span></td>
         <td>${formatIndonesianDate(h.expires_at)}</td>
       </tr>
-    `).join('') || '<tr><td colspan="4" style="opacity:.6">Belum ada history.</td></tr>';
+    `).join('') || '<tr><td colspan="5" style="opacity:.6">Belum ada history.</td></tr>';
   } catch (err) {
     showToast(err.message || 'Gagal memuat history kode.');
   }
 }
 
+// ---------- Panel: User ----------
 
 let _usersCache = [];
 
@@ -312,14 +322,21 @@ function renderUsersTable(filter) {
   document.getElementById('userStatPremium').textContent = _usersCache.filter(isPremium).length;
   document.getElementById('userStatFree').textContent = _usersCache.filter((u) => !isPremium(u)).length;
 
-  document.getElementById('usersTableBody').innerHTML = filtered.map((u) => `
-    <tr>
-      <td>${escapeHtml(u.username)}</td>
-      <td>${escapeHtml(u.email)}</td>
-      <td><span class="status-tag status-${isPremium(u) ? 'used' : 'active'}">${isPremium(u) ? '👑 Premium' : 'Gratis'}</span></td>
-      <td><button class="btn btn-danger btn-sm" data-delete-user="${u.id}">Hapus</button></td>
-    </tr>
-  `).join('') || '<tr><td colspan="4" style="opacity:.6">Belum ada user.</td></tr>';
+  document.getElementById('usersTableBody').innerHTML = filtered.map((u) => {
+    const premium = isPremium(u);
+    const daysLeft = premium ? Math.ceil((new Date(u.premium_until) - new Date()) / 86400000) : null;
+    const statusHtml = premium
+      ? `<span class="status-tag status-used">👑 Premium</span> <span style="opacity:.6;font-size:.78rem">${daysLeft} hari lagi</span>`
+      : '<span class="status-tag status-active">Gratis</span>';
+    return `
+      <tr>
+        <td>${escapeHtml(u.username)}</td>
+        <td>${escapeHtml(u.email)}</td>
+        <td>${statusHtml}</td>
+        <td><button class="btn btn-danger btn-sm" data-delete-user="${u.id}">Hapus</button></td>
+      </tr>
+    `;
+  }).join('') || '<tr><td colspan="4" style="opacity:.6">Belum ada user.</td></tr>';
 
   document.querySelectorAll('[data-delete-user]').forEach((btn) => {
     btn.addEventListener('click', () => handleDeleteUser(Number(btn.dataset.deleteUser)));
@@ -338,6 +355,7 @@ async function handleDeleteUser(id) {
   }
 }
 
+// ---------- Panel: Foto ----------
 
 async function loadPhotos() {
   try {
@@ -389,6 +407,7 @@ async function handleDeletePhoto(id) {
   }
 }
 
+// ---------- Panel: Printer ----------
 
 function setupPrinterPanel() {
   refreshPrinterStatus();
@@ -412,7 +431,7 @@ async function handleConnectPrinter() {
     const device = await connectUsbPrinter();
     await apiRequest('/printer', {
       method: 'POST',
-      body  : { printer_name: device.productName || 'USB Printer', connected: true },
+      body: { printer_name: device.productName || 'USB Printer', connected: true },
     });
     showToast('Printer terhubung.');
     await refreshPrinterStatus();

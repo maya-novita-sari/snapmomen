@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard Admin Snapmomen</title>
+<title>Dashboard Admin — Snapmomen</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
@@ -13,7 +13,7 @@
 <div class="doodles"></div>
 <div class="admin-shell">
   <aside class="admin-sidebar">
-    <div class="brand">Dashboard Admin</div>
+    <div class="brand"><img class="side-icon" src="assets/icons/gear.svg" alt=""> Admin</div>
     <button class="side-link active" data-panel="panelDashboard"><img class="side-icon" src="assets/icons/dashboard.svg" alt=""> Dashboard</button>
     <button class="side-link" data-panel="panelFrames"><img class="side-icon" src="assets/icons/frame.svg" alt=""> Bingkai</button>
     <button class="side-link" data-panel="panelCodes"><img class="side-icon" src="assets/icons/ticket.svg" alt=""> Kode Premium</button>
@@ -65,7 +65,7 @@
     <section class="admin-panel" id="panelHistory">
       <h2>History Kode</h2>
       <table>
-        <thead><tr><th>Kode</th><th>User</th><th>Durasi</th><th>Expired</th></tr></thead>
+        <thead><tr><th>Kode</th><th>User</th><th>Durasi</th><th>Status</th><th>Expired</th></tr></thead>
         <tbody id="historyTableBody"></tbody>
       </table>
     </section>
@@ -142,6 +142,7 @@
   </div>
 </div>
 
+<!-- Modal: generate kode premium -->
 <div class="modal-overlay" id="codeModal">
   <div class="modal-box">
     <h3>Generate Kode Premium</h3>

@@ -167,11 +167,11 @@ function renderLivePreview() {
   retakeLayer.innerHTML = '';
 
   for (let i = 0; i < config.slots; i++) {
-    const slotEl = document.createElement('div');
+    const slotEl     = document.createElement('div');
     slotEl.className = 'live-slot';
     if (StudioState.livePreviewSlots[i]) {
       const img = document.createElement('img');
-      img.src = StudioState.livePreviewSlots[i];
+      img.src   = StudioState.livePreviewSlots[i];
       slotEl.appendChild(img);
     }
     slotsContainer.appendChild(slotEl);
@@ -182,11 +182,11 @@ function renderLivePreview() {
     if (!StudioState.livePreviewSlots[i]) return;
     const rect = slotEl.getBoundingClientRect();
     const btn = document.createElement('button');
-    btn.className = 'retake-btn';
+    btn.className   = 'retake-btn';
     btn.textContent = 'Retake';
-    btn.style.top = `${rect.top - previewBox.top + 10}px`;
-    btn.style.left = `${rect.left - previewBox.left + rect.width / 2 - 50}px`;
-    btn.onclick = (event) => { event.stopPropagation(); retakeSlot(i); };
+    btn.style.top   = `${rect.top - previewBox.top + 10}px`;
+    btn.style.left  = `${rect.left - previewBox.left + rect.width / 2 - 50}px`;
+    btn.onclick     = (event) => { event.stopPropagation(); retakeSlot(i); };
     retakeLayer.appendChild(btn);
   });
 }
@@ -307,20 +307,20 @@ async function processResult() {
 
   const slots = StudioState.model === 'left' ? duplicateForLeftModel(StudioState.photoData) : StudioState.photoData;
 
-  const topOffset = H * 0.07;
+  const topOffset  = H * 0.07;
   const sideOffset = W * 0.03;
-  const gridW = W - sideOffset * 2;
-  const gridH = H * 0.68;
-  const gapX = gridW * 0.06;
-  const gapY = gridH * 0.035;
-  const slotW = (gridW - gapX) / 2;
-  const slotH = (gridH - gapY * 2) / 3;
+  const gridW      = W - sideOffset * 2;
+  const gridH      = H * 0.68;
+  const gapX       = gridW * 0.06;
+  const gapY       = gridH * 0.035;
+  const slotW      = (gridW - gapX) / 2;
+  const slotH      = (gridH - gapY * 2) / 3;
 
-  for (let i = 0; i < slots.length; i++) {
+  for (let i  = 0; i < slots.length; i++) {
     const col = i % 2;
     const row = Math.floor(i / 2);
-    const x = sideOffset + col * (slotW + gapX);
-    const y = topOffset + row * (slotH + gapY);
+    const x   = sideOffset + col * (slotW + gapX);
+    const y   = topOffset + row * (slotH + gapY);
 
     ctx.save();
     roundedRectPath(ctx, x, y, slotW, slotH, 6);
