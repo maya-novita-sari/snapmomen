@@ -4,31 +4,64 @@ const MODEL_CONFIG = {
 };
 
 const StudioState = {
-  model    : null,        // 'left' | 'right'
-  frame    : null,        // selected frame row from API
-  photoData: [],          // captured shot dataURLs
+  model    : null,     
+  frame    : null,       
+  photoData: [],         
   livePreviewSlots: [],
 };
 
-let welcomeStream = null;
-let cameraStream = null;
+let welcomeStream   = null;
+let cameraStream    = null;
 let photoTakenCount = 0;
-let isCountingDown = false;
-let currentFilter = 'normal';
+let isCountingDown  = false;
+let currentFilter   = 'normal';
+
+const THEME_CATEGORIES = ['free', 'premium', 'custom'];
+const CUSTOM_LOCKED_MESSAGE = 'Masukin token dulu buat akses bingkai custom';
+const PREMIUM_ICON_BADGE_HTML =
+  '<span class="theme-lock"><img src="assets/images/premium.png" alt="Premium" width="16" height="16"></span>';
+
+let activeThemeCategory = 'free';
+const dom = {};
+
+function byId(elementId) {
+  return document.getElementById(elementId);
+}
+
+function cacheDomElements() {
+  dom.themeGrid         = byId('theme-grid');
+  dom.themeTabs         = byId('theme-tabs');
+  dom.themePreview      = byId('theme-preview');
+  dom.nextThemeButton   = byId('btn-next-theme');
+  dom.liveFrameOverlay  = byId('live-frame-overlay');
+  dom.tokenModal        = byId('token-modal');
+  dom.tokenInput        = byId('token-input');
+  dom.tokenError        = byId('token-error');
+  dom.tokenSubmitButton = byId('btn-token-submit');
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   requireLoggedIn('studio.html');
+  cacheDomElements();
+  setupThemeEvents();
+  setupTokenModal();
   startWelcomeCamera();
-  await loadFrames();
-  await refreshPremiumStatus();
+  await loadStudioData();
 });
 
+async function loadStudioData() {
+  try {
+    await Promise.all([loadFrames(), refreshPremiumStatus(), restoreCustomFrames()]);
+  } catch (err) {
+    showToast(err.message || 'Gagal memuat bingkai.');
+  }
+}
 
 function goToScreen(screenId) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
 
-  if (screenId === 'screen-theme') renderThemeGrid();
+  if (screenId === 'screen-theme') showThemeScreen();
   if (screenId === 'screen-result') processResult();
 }
 
@@ -62,59 +95,156 @@ function selectModel(model) {
   document.getElementById('btn-next-frame-model').disabled = false;
 }
 
+
+function setupThemeEvents() {
+  dom.themeGrid.addEventListener('click', (event) => {
+    const option = event.target.closest('.theme-option');
+    if (option) onThemeClick(Number(option.dataset.frameId), option.dataset.allowed === 'true');
+  });
+  dom.themeTabs.addEventListener('click', (event) => {
+    const tab = event.target.closest('.theme-tab');
+    if (tab) switchThemeTab(tab.dataset.category);
+  });
+  byId('btn-open-token').addEventListener('click', openTokenModal);
+}
+
+function showThemeScreen() {
+  if (StudioState.frame) activeThemeCategory = StudioState.frame.category;
+  renderThemeGrid();
+}
+
+function switchThemeTab(category) {
+  if (!THEME_CATEGORIES.includes(category) || category === activeThemeCategory) return;
+  activeThemeCategory = category;
+  renderThemeGrid();
+}
+
+function getThemesForActiveTab() {
+  const { size } = MODEL_CONFIG[StudioState.model];
+  if (activeThemeCategory === 'custom') return getCustomFramesBySize(size);
+  return getFramesBySize(size).filter((frame) => frame.category === activeThemeCategory);
+}
+
+function getEmptyThemeMessage() {
+  if (activeThemeCategory !== 'custom') return 'Belum ada bingkai untuk model ini. Hubungi admin.';
+  return hasCustomAccess() ? 'Belum ada bingkai custom untuk model ini.' : CUSTOM_LOCKED_MESSAGE;
+}
+
+function buildThemeOptionHtml(frame) {
+  const { allowed } = checkFrameAccess(frame);
+  const lockBadge = frame.category === 'premium' ? PREMIUM_ICON_BADGE_HTML : '';
+  return `
+    <div class="theme-option" data-frame-id="${frame.id}" data-allowed="${allowed}">
+      <img src="${frame.image_url}" alt="${escapeHtml(frame.name)}" loading="lazy" decoding="async">
+      ${lockBadge}
+    </div>`;
+}
+
+function updateThemeTabs() {
+  dom.themeTabs.querySelectorAll('.theme-tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.category === activeThemeCategory);
+  });
+}
+
+function markSelectedTheme() {
+  dom.themeGrid.querySelectorAll('.theme-option').forEach((option) => {
+    option.classList.toggle('selected', Number(option.dataset.frameId) === StudioState.frame?.id);
+  });
+}
+
 function renderThemeGrid() {
-  const grid = document.getElementById('theme-grid');
-  const config = MODEL_CONFIG[StudioState.model];
-  const themes = getFramesBySize(config.size);
-  const nextBtn = document.getElementById('btn-next-theme');
+  const themes = getThemesForActiveTab();
+  updateThemeTabs();
 
   if (!themes.length) {
-    grid.innerHTML = '<p style="opacity:.6">Belum ada bingkai untuk model ini. Hubungi admin.</p>';
-    nextBtn.disabled = true;
-    return;
+    dom.themeGrid.innerHTML = `<p class="theme-empty">${getEmptyThemeMessage()}</p>`;
+  } else {
+    dom.themeGrid.innerHTML = themes.map(buildThemeOptionHtml).join('');
+    if (!StudioState.frame) selectFirstAllowedTheme(themes);
+    markSelectedTheme();
   }
+  dom.nextThemeButton.disabled = !StudioState.frame;
+}
 
-  grid.innerHTML = themes.map((frame) => {
-    const access = checkFrameAccess(frame);
-    const lockBadge = frame.type === 'premium' ? '<span class="theme-lock"></span>' : '';
-    const selectedClass = StudioState.frame?.id === frame.id ? 'selected' : '';
-    return `
-      <div class="theme-option ${selectedClass}" data-frame-id="${frame.id}" data-allowed="${access.allowed}">
-        <img src="${frame.image_url}" alt="${escapeHtml(frame.name)}">
-        ${lockBadge}
-      </div>`;
-  }).join('');
+function selectFirstAllowedTheme(themes) {
+  const firstAllowed = themes.find((frame) => checkFrameAccess(frame).allowed);
+  if (firstAllowed) applyThemeSelection(firstAllowed);
+}
 
-  grid.querySelectorAll('.theme-option').forEach((el) => {
-    el.addEventListener('click', () => onThemeClick(Number(el.dataset.frameId), el.dataset.allowed === 'true'));
-  });
-
-  nextBtn.disabled = !StudioState.frame;
-
-  if (!StudioState.frame) {
-    const firstAllowed = themes.find((frame) => checkFrameAccess(frame).allowed);
-    if (firstAllowed) onThemeClick(firstAllowed.id, true);
-  }
+function applyThemeSelection(frame) {
+  StudioState.frame = frame;
+  dom.liveFrameOverlay.src = frame.image_url;
+  dom.liveFrameOverlay.style.display = 'block';
+  dom.themePreview.style.backgroundImage = `url('${frame.image_url}')`;
+  dom.nextThemeButton.disabled = false;
 }
 
 function onThemeClick(frameId, allowed) {
-  const frame = getAllFrames().find((item) => item.id === frameId);
   if (!allowed) {
     location.href = 'premium.html';
     return;
   }
-  StudioState.frame = frame;
-
-  const overlay = document.getElementById('live-frame-overlay');
-  overlay.src = frame.image_url;
-  overlay.style.display = 'block';
-
-  document.getElementById('theme-preview').style.backgroundImage = `url('${frame.image_url}')`;
-  document.getElementById('btn-next-theme').disabled = false;
-  renderThemeGrid();
+  const frame = findFrameById(frameId);
+  if (!frame) return;
+  applyThemeSelection(frame);
+  markSelectedTheme();
 }
 
-// ---------- Camera session ----------
+
+function setupTokenModal() {
+  byId('btn-token-cancel').addEventListener('click', closeTokenModal);
+  dom.tokenSubmitButton.addEventListener('click', submitToken);
+  dom.tokenInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') submitToken();
+  });
+}
+
+function openTokenModal() {
+  dom.tokenInput.value = '';
+  setTokenError('');
+  dom.tokenModal.classList.add('open');
+  dom.tokenInput.focus();
+}
+
+function closeTokenModal() {
+  dom.tokenModal.classList.remove('open');
+}
+
+function setTokenError(message) {
+  dom.tokenError.textContent = message;
+}
+
+function setTokenBusy(isBusy) {
+  dom.tokenSubmitButton.disabled = isBusy;
+  dom.tokenSubmitButton.textContent = isBusy ? 'Memeriksa...' : 'Buka';
+}
+
+function describeTokenResult(frames) {
+  const { size } = MODEL_CONFIG[StudioState.model];
+  if (frames.some((frame) => frame.size === size)) return 'Token valid. Bingkai custom terbuka.';
+  return `Token valid, tapi bingkainya untuk ukuran ${frames[0].size}. Pilih model yang sesuai.`;
+}
+
+async function submitToken() {
+  const token = dom.tokenInput.value.trim();
+  if (!token) {
+    setTokenError('Masukkan token terlebih dahulu.');
+    return;
+  }
+
+  setTokenBusy(true);
+  try {
+    const frames = await verifyCustomToken(token);
+    closeTokenModal();
+    activeThemeCategory = 'custom';
+    renderThemeGrid();
+    showToast(describeTokenResult(frames));
+  } catch (err) {
+    setTokenError(err.message || 'Token tidak valid.');
+  } finally {
+    setTokenBusy(false);
+  }
+}
 
 function setFilter(type) {
   currentFilter = type;
@@ -290,7 +420,6 @@ function retakeSlot(slotIndex) {
   renderLivePreview();
 }
 
-// ---------- Result canvas ----------
 
 async function processResult() {
   const canvas = document.getElementById('result-canvas');
@@ -373,6 +502,7 @@ function loadImage(src) {
 function loadImageStrict(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
+    img.crossOrigin = 'anonymous'; 
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error(`Gagal memuat gambar: ${src}`));
     img.src = src;
@@ -401,38 +531,16 @@ function drawImageCover(ctx, img, x, y, w, h) {
 
 
 async function saveAndPrintResult() {
-  const canvas = document.getElementById('result-canvas');
-  const saveBtn = document.getElementById('btn-save');
+  const saveBtn = byId('btn-save');
   saveBtn.disabled = true;
   saveBtn.textContent = 'Menyimpan...';
 
   try {
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-
-    await apiRequest('/photos', {
-      method: 'POST',
-      body: { image_data: dataUrl, frame_id: StudioState.frame.id },
-    });
-
-    showToast('Foto tersimpan! Foto otomatis terhapus dalam 3 hari.');
-    downloadCanvasImage(canvas);
-    await printPhoto(dataUrl);
-  } catch (err) {
-    showToast(err.message || 'Gagal menyimpan foto.');
+    await saveAndSharePhoto(byId('result-canvas'), StudioState.frame.id);
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Simpan';
   }
-}
-
-function downloadCanvasImage(canvas) {
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-  const link = document.createElement('a');
-  link.download = `snapmomen-${Date.now()}.jpg`;
-  link.href = dataUrl;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
 }
 
 function resetApp() {

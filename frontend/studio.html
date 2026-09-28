@@ -46,7 +46,17 @@
 
     <div id="screen-theme" class="screen">
         <div class="theme-layout">
-            <div class="theme-grid" id="theme-grid"></div>
+            <div class="theme-main">
+                <div class="theme-toolbar">
+                    <div class="theme-tabs" id="theme-tabs">
+                        <button class="theme-tab active" data-category="free">Free</button>
+                        <button class="theme-tab" data-category="premium">Premium</button>
+                        <button class="theme-tab" data-category="custom">Custom</button>
+                    </div>
+                    <button class="btn-token" id="btn-open-token">Masukin Token</button>
+                </div>
+                <div class="theme-grid" id="theme-grid"></div>
+            </div>
             <div class="theme-preview-side">
                 <div id="theme-preview" class="theme-preview">
                     <div class="theme-slots">
@@ -82,8 +92,10 @@
                     <button class="filter-btn" id="filter-bw" onclick="setFilter('bw')">B&W</button>
                 </div>
 
-                <button class="btn-capture-circle" id="btn-capture" onclick="startCountdown()">
-                    <img src="assets/images/camera.png" alt="" class="capture-icon">
+                <button class="btn-capture-circle" id="btn-capture" onclick="startCountdown()" aria-label="Ambil foto">
+                    <svg class="capture-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 5.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm0 2.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
+                    </svg>
                 </button>
             </div>
 
@@ -113,12 +125,29 @@
 
 </div>
 
+<div class="modal-overlay" id="token-modal">
+    <div class="modal-box token-box">
+        <h3>Masukin Token</h3>
+        <p class="token-hint">Masukkan token dari admin untuk membuka bingkai custom.</p>
+        <div class="field">
+            <input type="text" id="token-input" maxlength="16" placeholder="Contoh: AB12CD34" autocomplete="off" style="text-transform:uppercase">
+        </div>
+        <div class="error-text" id="token-error"></div>
+        <div class="modal-actions">
+            <button class="btn btn-back" id="btn-token-cancel">Batal</button>
+            <button class="btn btn-next" id="btn-token-submit">Buka</button>
+        </div>
+    </div>
+</div>
+
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/frame-manager.js"></script>
 <script src="js/print.js"></script>
+<script src="js/image-utils.js"></script>
+<script src="js/result-share.js"></script>
 <script src="js/studio.js"></script>
 </body>
 </html>

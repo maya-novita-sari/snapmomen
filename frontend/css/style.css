@@ -10,12 +10,12 @@
   --white:#FFFFFF;
   --radius-lg:28px;
   --radius-md:18px;
-  --shadow:0 10px 24px rgba(59,46,42,.14);
+  --shadow:0 4px 12px rgba(59,46,42,.12);
   --font-display:'Baloo 2','Fredoka',system-ui,sans-serif;
   --font-body:'Nunito',system-ui,sans-serif;
 }
 [data-theme="dark"]{
-  --cream:#211A22; --cream-2:#2C2230; --ink:#F5E9D8; --white:#2C2230; --shadow:0 10px 24px rgba(0,0,0,.4);
+  --cream:#211A22; --cream-2:#2C2230; --ink:#F5E9D8; --white:#2C2230; --shadow:0 4px 12px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:var(--font-body);background:var(--cream);color:var(--ink);}
@@ -54,8 +54,8 @@ img{max-width:100%;display:block}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
 .hero{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;
-  gap:20px;padding:40px 8vw 80px;flex-wrap:wrap;}
-.hero-copy{max-width:800px}
+  gap:40px;padding:40px 8vw 80px;flex-wrap:wrap;}
+.hero-copy{max-width:480px}
 .hero-copy h1{font-size:clamp(2.2rem,5vw,3.6rem);line-height:1.05;margin:0 0 16px}
 .hero-copy p{font-size:1.05rem;line-height:1.6;margin:0 0 28px;opacity:.85}
 
@@ -66,6 +66,7 @@ img{max-width:100%;display:block}
 .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px}
 .gallery-grid img{border-radius:var(--radius-md);box-shadow:var(--shadow);aspect-ratio:3/4;object-fit:cover}
 
+.gallery-more{display:flex;justify-content:center;margin-top:24px}
 .frame-showcase{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:20px}
 .frame-card{background:var(--white);border-radius:var(--radius-md);padding:12px;box-shadow:var(--shadow);text-align:center}
 .frame-card .swatch{width:100%;aspect-ratio:4/5;object-fit:contain;background:var(--cream);border-radius:12px;margin-bottom:10px}
@@ -106,5 +107,7 @@ footer{text-align:center;padding:30px;opacity:.6;font-size:.85rem;position:relat
 
 @media(max-width:640px){.hero{padding-top:10px}.section{padding:40px 5vw}}
 
+.icon-premium{width:18px;height:18px;display:inline-block;vertical-align:-3px;margin-right:6px;object-fit:contain}
+.nav-username{display:inline-flex;align-items:center}
 .nav-premium-badge{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:14px;
   background:var(--yellow);color:var(--ink);font-weight:700;font-size:.85rem}

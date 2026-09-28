@@ -12,6 +12,8 @@ function showToast(message) {
   toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2600);
 }
 
+const PREMIUM_ICON_HTML = '<img class="icon-premium" src="assets/images/premium.png" alt="Premium">';
+
 // Renders Login/Register, or the logged-in nav (username + premium/dashboard + logout).
 async function renderNavActions(selector) {
   const container = document.querySelector(selector);
@@ -26,10 +28,11 @@ async function renderNavActions(selector) {
     return;
   }
 
-  const middleButton = await buildNavMiddleButton(user);
+  const premiumStatus = await fetchCustomerPremiumStatus(user);
+  const usernameIcon = premiumStatus?.premium ? PREMIUM_ICON_HTML : '';
   container.innerHTML = `
-    <span class="nav-username">${escapeHtml(user.username)}</span>
-    ${middleButton}
+    <span class="nav-username">${usernameIcon}${escapeHtml(user.username)}</span>
+    ${buildNavMiddleButton(user, premiumStatus)}
     <button class="btn btn-primary btn-sm" id="navLogoutBtn">Keluar</button>
   `;
   document.getElementById('navLogoutBtn').addEventListener('click', () => {
@@ -38,21 +41,26 @@ async function renderNavActions(selector) {
   });
 }
 
+// Admins have full access and no subscription, so only customers need the status call.
+async function fetchCustomerPremiumStatus(user) {
+  if (user.role === 'admin') return null;
+  try {
+    return await apiRequest('/premium?action=status');
+  } catch {
+    return null;
+  }
+}
+
 // Admin sees a Dashboard link. Customers see "Join Premium", or a countdown
 // once they already have an active subscription.
-async function buildNavMiddleButton(user) {
+function buildNavMiddleButton(user, premiumStatus) {
   if (user.role === 'admin') {
     return '<a href="dashboard-admin.html" class="btn btn-outline btn-sm">Dashboard</a>';
   }
 
-  try {
-    const data = await apiRequest('/premium?action=status');
-    if (data.premium && data.premium_until) {
-      const { days, hours } = getRemainingDaysHours(data.premium_until);
-      return `<span class="nav-premium-badge">${days} hari ${hours} jam</span>`;
-    }
-  } catch {
-    // ignore, fall back to the default Join Premium button below
+  if (premiumStatus?.premium && premiumStatus.premium_until) {
+    const { days, hours } = getRemainingDaysHours(premiumStatus.premium_until);
+    return `<span class="nav-premium-badge">${days} hari ${hours} jam</span>`;
   }
   return '<a href="premium.html" class="btn btn-primary btn-sm">Join Premium</a>';
 }

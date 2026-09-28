@@ -1,7 +1,12 @@
 const ADMIN_WHATSAPP_NUMBER = '6281234567890'; // ganti dengan nomor WA admin
 
 document.addEventListener('DOMContentLoaded', async () => {
-  requireLoggedIn('premium.html');
+  const user = requireLoggedIn('premium.html');
+  if (!user) return;
+  if (user.role === 'admin') {
+    location.replace('dashboard-admin.html');
+    return;
+  }
   renderNavActions('#navActions');
 
   document.getElementById('waBtn').href =
@@ -32,12 +37,6 @@ function renderPremiumStatus(data) {
 
   notPremiumBox.style.display = 'none';
   premiumBox.style.display = 'block';
-
-  if (data.is_admin) {
-    document.getElementById('premiumCountdown').textContent = 'Akses penuh (admin)';
-    document.getElementById('premiumExpiry').textContent = '-';
-    return;
-  }
 
   const { days, hours } = getRemainingDaysHours(data.premium_until);
   document.getElementById('premiumCountdown').textContent = `${days} hari ${hours} jam lagi`;

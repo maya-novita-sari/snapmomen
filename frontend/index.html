@@ -28,6 +28,9 @@
   <h2 class="section-title">Galeri Hasil Foto</h2>
   <p class="section-sub">Beberapa hasil dari studio Snapmomen.</p>
   <div class="gallery-grid" id="galleryGrid"></div>
+  <div class="gallery-more">
+    <button class="btn btn-outline" id="galleryMoreBtn" style="display:none">Lihat Lebih Banyak</button>
+  </div>
 </section>
 
 <section class="section">
@@ -53,39 +56,6 @@
 <script src="js/app.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/frame-manager.js"></script>
-<script>
-  renderNavActions('#navActions');
-
-  function goToStudio() {
-    if (getStoredUser()) location.href = 'studio.html';
-    else location.href = 'login.html?redirect=studio.html';
-  }
-  document.getElementById('ctaStartBtn').addEventListener('click', (e) => { e.preventDefault(); goToStudio(); });
-  document.getElementById('ctaBottomBtn').addEventListener('click', (e) => { e.preventDefault(); goToStudio(); });
-
-  (async () => {
-    try {
-      const frames = await loadFrames();
-
-      try {
-        const { photos } = await apiRequest('/photos?gallery=1', { auth: false });
-        document.getElementById('galleryGrid').innerHTML = photos.map((p) =>
-          `<img src="${p.image_data}" alt="Hasil foto Snapmomen">`).join('')
-          || '<p style="opacity:.6">Belum ada foto di galeri.</p>';
-      } catch {
-        document.getElementById('galleryGrid').innerHTML = '<p style="opacity:.6">Belum ada foto di galeri.</p>';
-      }
-
-      document.getElementById('frameShowcase').innerHTML = frames.map((f) => `
-        <div class="frame-card">
-          <img class="swatch" src="${f.image_url}" alt="${escapeHtml(f.name)}">
-          <div style="font-weight:700">${f.name}</div>
-          <span class="badge ${f.type === 'free' ? 'badge-free' : 'badge-premium'}">${f.type === 'free' ? 'GRATIS' : 'PREMIUM'}</span>
-        </div>`).join('') || '<p style="opacity:.6">Belum ada bingkai.</p>';
-    } catch (err) {
-      showToast(err.message || 'Gagal memuat data.');
-    }
-  })();
-</script>
+<script src="js/landing.js"></script>
 </body>
 </html>

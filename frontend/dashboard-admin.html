@@ -20,6 +20,7 @@
     <button class="side-link" data-panel="panelHistory">History Kode</button>
     <button class="side-link" data-panel="panelUsers">User</button>
     <button class="side-link" data-panel="panelPhotos">Foto</button>
+    <button class="side-link" data-panel="panelGallery">Galeri</button>
     <button class="side-link" data-panel="panelPrinter">Printer</button>
     <div style="margin-top:auto;padding-top:20px">
       <button class="btn btn-primary" style="width:100%;margin-bottom:8px" id="goStudioBtn">Masuk Studio</button>
@@ -90,8 +91,17 @@
 
     <section class="admin-panel" id="panelPhotos">
       <h2>Foto</h2>
-      <p style="opacity:.7">Foto otomatis kehapus 3 hari setelah diambil.</p>
+      <p style="opacity:.7">Hasil foto dari akun admin. Otomatis kehapus 3 hari setelah diambil, kecuali dipindah ke galeri.</p>
       <div class="photos-grid" id="photosGrid"></div>
+      <div class="list-more"><button class="btn btn-outline" id="photosMoreBtn" style="display:none">Muat Lebih Banyak</button></div>
+    </section>
+
+    <section class="admin-panel" id="panelGallery">
+      <h2>Galeri</h2>
+      <p style="opacity:.7">Foto galeri tampil di landing page, tidak ikut terhapus otomatis, dan hanya admin yang bisa mengubahnya.</p>
+      <button class="btn btn-primary" id="addGalleryBtn" style="margin-bottom:20px">+ Tambah Foto Galeri</button>
+      <div class="photos-grid" id="galleryAdminGrid"></div>
+      <div class="list-more"><button class="btn btn-outline" id="galleryAdminMoreBtn" style="display:none">Muat Lebih Banyak</button></div>
     </section>
 
     <section class="admin-panel" id="panelPrinter">
@@ -132,12 +142,52 @@
         <select id="frameTypeInput">
           <option value="free">Gratis</option>
           <option value="premium">Premium</option>
+          <option value="custom">Custom (pakai token)</option>
         </select>
+      </div>
+      <div class="field" id="frameOwnerField" style="display:none">
+        <label>Username Pemilik (opsional)</label>
+        <input type="text" id="frameOwnerInput" placeholder="Kosongkan kalau tidak spesifik">
       </div>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-outline" data-close-frame-modal>Batal</button>
       <button type="submit" class="btn btn-primary" id="frameSaveBtn">Simpan</button>
+    </div>
+  </form>
+</div>
+
+<!-- Modal: token bingkai custom -->
+<div class="modal-overlay" id="tokenModal">
+  <div class="modal-box">
+    <h3>Token Bingkai Custom</h3>
+    <p style="opacity:.75">Kirim token ini ke customer lewat WhatsApp.</p>
+    <div class="token-display" id="tokenValue"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" id="closeTokenBtn">Tutup</button>
+      <button type="button" class="btn btn-pink" id="copyTokenBtn">Copy Token</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: tambah/edit foto galeri -->
+<div class="modal-overlay" id="galleryModal">
+  <form class="modal-box" id="galleryForm">
+    <div class="modal-body">
+      <h3 id="galleryModalTitle">Tambah Foto Galeri</h3>
+      <img id="galleryImagePreview" class="frame-preview-img" alt="Preview foto">
+      <div class="field">
+        <label>Foto</label>
+        <input type="file" id="galleryImageInput" accept="image/*">
+      </div>
+      <div class="field">
+        <label>Keterangan (opsional)</label>
+        <input type="text" id="galleryCaptionInput" maxlength="120">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" id="closeGalleryBtn">Batal</button>
+      <button type="submit" class="btn btn-primary" id="gallerySaveBtn">Simpan</button>
     </div>
   </form>
 </div>
@@ -181,6 +231,8 @@
 <script src="js/auth.js"></script>
 <script src="js/frame-manager.js"></script>
 <script src="js/print.js"></script>
+<script src="js/image-utils.js"></script>
+<script src="js/dashboard-photos.js"></script>
 <script src="js/dashboard.js"></script>
 </body>
 </html>
