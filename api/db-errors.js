@@ -1,5 +1,5 @@
 const UNDEFINED_COLUMN = '42703';
-const UNDEFINED_TABLE  = '42P01';
+const UNDEFINED_TABLE = '42P01';
 const UNIQUE_VIOLATION = '23505';
 
 export function isUniqueViolation(err) {
