@@ -18,8 +18,8 @@ let currentFilter   = 'normal';
 
 const THEME_CATEGORIES = ['free', 'premium', 'custom'];
 const CUSTOM_LOCKED_MESSAGE = 'Masukin token dulu buat akses bingkai custom';
-const PREMIUM_ICON_BADGE_HTML =
-  '<span class="theme-lock"><img src="assets/images/premium.png" alt="Premium" width="16" height="16"></span>';
+const PREMIUM_TAG_HTML =
+  '<span class="theme-tag"><img src="assets/images/premium.png" alt="" width="12" height="12">Premium</span>';
 
 let activeThemeCategory = 'free';
 const dom = {};
@@ -132,11 +132,13 @@ function getEmptyThemeMessage() {
 
 function buildThemeOptionHtml(frame) {
   const { allowed } = checkFrameAccess(frame);
-  const lockBadge = frame.category === 'premium' ? PREMIUM_ICON_BADGE_HTML : '';
+  const premiumTag = frame.category === 'premium' ? PREMIUM_TAG_HTML : '';
   return `
-    <div class="theme-option" data-frame-id="${frame.id}" data-allowed="${allowed}">
-      <img src="${frame.image_url}" alt="${escapeHtml(frame.name)}" loading="lazy" decoding="async">
-      ${lockBadge}
+    <div class="theme-item">
+      <div class="theme-option" data-frame-id="${frame.id}" data-allowed="${allowed}">
+        <img src="${frame.image_url}" alt="${escapeHtml(frame.name)}" loading="lazy" decoding="async">
+      </div>
+      ${premiumTag}
     </div>`;
 }
 

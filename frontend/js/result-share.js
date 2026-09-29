@@ -3,11 +3,15 @@ const PHOTO_UPLOAD_TIMEOUT_MS = 30000;
 
 const SAVE_SUCCESS_MESSAGES = {
   device  : 'Foto tersimpan di perangkatmu.',
-  database: 'Foto masuk dashboard admin dan otomatis terhapus dalam 3 hari.',
+  database: 'Foto tersimpan ke dashboard admin',
 };
 
 function buildPhotoFileName() {
   return `snapmomen-${Date.now()}.jpg`;
+}
+
+function isAdminUser() {
+  return getStoredUser()?.role === 'admin';
 }
 
 function canvasToDeviceDataUrl(canvas) {
@@ -28,9 +32,9 @@ function saveCustomerPhoto(canvas) {
   downloadDataUrl(canvasToDeviceDataUrl(canvas), buildPhotoFileName());
 }
 
+// Admin: kirim ke API saja. Customer: download ke device saja.
 async function saveResultPhoto(canvas, frameId) {
-  const user = getStoredUser();
-  if (user?.role === 'admin') {
+  if (isAdminUser()) {
     await uploadAdminPhoto(canvas, frameId);
     return 'database';
   }
@@ -39,17 +43,13 @@ async function saveResultPhoto(canvas, frameId) {
 }
 
 async function saveAndSharePhoto(canvas, frameId) {
-  let printableDataUrl = null;
+  const printableDataUrl = canvasToDeviceDataUrl(canvas);
   try {
-    printableDataUrl = canvasToDeviceDataUrl(canvas);
     const mode = await saveResultPhoto(canvas, frameId);
     showToast(SAVE_SUCCESS_MESSAGES[mode]);
   } catch (err) {
     console.error('Simpan foto gagal:', err);
-    if (printableDataUrl) downloadDataUrl(printableDataUrl, buildPhotoFileName());
-    showToast(printableDataUrl
-      ? `${err.message} Foto diunduh ke perangkatmu sebagai cadangan.`
-      : `${err.message} Muat ulang bingkai lalu coba lagi.`);
+    showToast(`${err.message} Foto belum tersimpan, coba klik Simpan lagi.`);
   }
-  if (printableDataUrl) await printPhoto(printableDataUrl);
+  await printPhoto(printableDataUrl);
 }

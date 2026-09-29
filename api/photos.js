@@ -48,6 +48,11 @@ function validateImageData(imageData, maxChars, label) {
   return null;
 }
 
+// Admin dari .env punya id 0 dan tidak ada di tabel users, jadi foreign key harus NULL.
+function resolvePhotoOwnerId(user) {
+  return user.id > 0 ? user.id : null;
+}
+
 function cleanCaption(caption) {
   if (caption === undefined || caption === null) return null;
   return String(caption).trim().slice(0, MAX_CAPTION_LENGTH);
@@ -132,11 +137,12 @@ async function handleSave(req, res) {
   if (thumbError) return sendError(res, 400, thumbError);
 
   const isGallery = Boolean(is_galeri);
+  const ownerId = resolvePhotoOwnerId(user);
   try {
     const [photo] = await sql`
       INSERT INTO photos (user_id, frame_id, image_data, thumb_data, caption,
                           is_galeri, is_hasil, is_permanent, expires_at)
-      VALUES (${user.id}, ${frame_id || null}, ${image_data}, ${thumb_data || null}, ${cleanCaption(caption)},
+      VALUES (${ownerId}, ${frame_id || null}, ${image_data}, ${thumb_data || null}, ${cleanCaption(caption)},
               ${isGallery}, FALSE, ${isGallery},
               NOW() + make_interval(days => ${PHOTO_LIFETIME_DAYS}))
       RETURNING id, user_id, frame_id, is_galeri, is_permanent, caption, expires_at, created_at
