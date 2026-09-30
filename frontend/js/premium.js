@@ -1,4 +1,4 @@
-const ADMIN_WHATSAPP_NUMBER = '6281234567890'; // ganti dengan nomor WA admin
+const ADMIN_WHATSAPP_NUMBER = '6285830116178';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const user = requireLoggedIn('premium.html');
