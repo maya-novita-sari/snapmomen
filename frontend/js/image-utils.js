@@ -56,10 +56,30 @@ async function createThumbnailDataUrl(imageSource) {
 }
 
 // Lowers JPEG quality (then size) until the data URL fits the upload limit.
-function compressCanvasForUpload(sourceCanvas) {
+function tryQualitySteps(canvas) {
   for (const quality of UPLOAD_QUALITY_STEPS) {
-    const dataUrl = sourceCanvas.toDataURL('image/jpeg', quality);
+    const dataUrl = canvas.toDataURL('image/jpeg', quality);
     if (dataUrl.length <= UPLOAD_MAX_DATA_URL_CHARS) return dataUrl;
+  }
+  return null;
+}
+
+function scaleCanvas(sourceCanvas, scale) {
+  const scaled = document.createElement('canvas');
+  scaled.width = Math.max(1, Math.round(sourceCanvas.width * scale));
+  scaled.height = Math.max(1, Math.round(sourceCanvas.height * scale));
+  scaled.getContext('2d').drawImage(sourceCanvas, 0, 0, scaled.width, scaled.height);
+  return scaled;
+}
+
+// Turunkan kualitas JPEG dulu, lalu perkecil ukuran, sampai muat batas upload.
+function compressCanvasForUpload(sourceCanvas) {
+  let scale = 1;
+  while (scale > 0.3) {
+    const candidate = scale === 1 ? sourceCanvas : scaleCanvas(sourceCanvas, scale);
+    const dataUrl = tryQualitySteps(candidate);
+    if (dataUrl) return dataUrl;
+    scale *= 0.8;
   }
   throw new Error(UPLOAD_SIZE_ERROR);
 }
