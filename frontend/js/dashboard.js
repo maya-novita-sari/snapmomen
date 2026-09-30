@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   renderNavActions('#navActions');
-  document.getElementById('adminName').textContent = user.username;
   setupSidebarNavigation();
   setupLogout();
   setupFrameModal();
@@ -210,7 +209,7 @@ async function handleFrameImageChange(event) {
   }
 }
 
-// ---------- Panel: Bingkai (simpan) ----------
+
 
 function buildFramePayload(form) {
   const category = document.getElementById('frameTypeInput').value;
