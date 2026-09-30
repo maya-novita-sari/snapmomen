@@ -104,26 +104,17 @@ html, body {
 }
 
 .frame-option {
-    position:relative;
-    background:rgba(255,255,255,0.35);
-    border:2px solid #d9d9d9;
-    border-radius:12px;
+    background:transparent;
+    border:none;
     box-shadow:none;
     outline:none;
-    padding:10px;
+    padding:0;
     cursor:pointer;
     display:block;
-    transition:background-color 0.15s ease;
+    -webkit-tap-highlight-color:transparent;
 }
-.frame-option:hover { background:rgba(255,255,255,0.6); }
-.frame-option.selected { background:#ffffff; }
-.frame-option.selected::after {
-    content:'';
-    position:absolute; top:8px; right:8px;
-    width:8px; height:14px;
-    border:solid #5D4037; border-width:0 3px 3px 0;
-    transform:rotate(45deg);
-}
+.frame-option:focus,
+.frame-option:focus-visible { outline:none; }
 
 .frame-img {
     display:block;
