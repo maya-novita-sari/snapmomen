@@ -1,11 +1,11 @@
-.admin-shell{display:flex;min-height:100vh;position:relative;z-index:1}
+.admin-shell{display:flex;height:100vh;height:100dvh;overflow:hidden;position:relative;z-index:1}
 .admin-sidebar{width:230px;background:var(--white);padding:24px 16px;box-shadow:var(--shadow);
-  display:flex;flex-direction:column;gap:6px}
+  display:flex;flex-direction:column;gap:6px;flex-shrink:0;height:100%;overflow-y:auto}
 .admin-sidebar .brand{margin-bottom:20px}
 .side-link{padding:12px 14px;border-radius:12px;cursor:pointer;font-weight:700;border:none;background:transparent;
   text-align:left;color:var(--ink);font-family:var(--font-body)}
 .side-link.active,.side-link:hover{background:var(--cream)}
-.admin-main{flex:1;padding:28px 3vw;overflow-x:hidden}
+.admin-main{flex:1;min-width:0;height:100%;padding:28px 3vw;overflow-x:hidden;overflow-y:auto}
 .admin-panel{display:none}
 .admin-panel.active{display:block}
 .admin-panel h2{margin-top:0}
@@ -30,7 +30,7 @@ th{background:var(--cream-2);font-family:var(--font-display)}
 .form-inline{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
 .settings-card{background:var(--white);border-radius:var(--radius-md);padding:22px;box-shadow:var(--shadow);margin-bottom:20px;max-width:520px}
 
-@media(max-width:800px){.admin-sidebar{position:fixed;bottom:0;left:0;right:0;top:auto;width:100%;flex-direction:row;
+@media(max-width:800px){.admin-shell{height:auto;overflow:visible;min-height:100vh}.admin-main{height:auto;overflow-y:visible}.admin-sidebar{height:auto;position:fixed;bottom:0;left:0;right:0;top:auto;width:100%;flex-direction:row;
   overflow-x:auto;padding:10px;z-index:10}.admin-main{padding-bottom:90px}}
 
 /* ===== Additions: modals, codes, users, photos ===== */
