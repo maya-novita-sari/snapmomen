@@ -209,7 +209,7 @@ async function handleFrameImageChange(event) {
   }
 }
 
-
+// ---------- Panel: Bingkai (simpan) ----------
 
 function buildFramePayload(form) {
   const category = document.getElementById('frameTypeInput').value;
@@ -290,8 +290,7 @@ function showTokenModal(token) {
 // ---------- Panel: Bingkai (grid) ----------
 
 function buildFrameCategoryHtml(frame) {
-  const label = CATEGORY_LABELS[frame.category] || frame.category;
-  return frame.category === 'premium' ? `${PREMIUM_ICON_HTML}${label}` : label;
+  return CATEGORY_LABELS[frame.category] || frame.category;
 }
 
 function buildFrameTokenHtml(frame) {
