@@ -1,3 +1,7 @@
+const PRINT_FRAME_CLEANUP_MS = 60000;
+const PRINT_PAPER_WIDTH_MM = 100;
+const PRINT_PAPER_HEIGHT_MM = 150;
+
 // Layer 1: WebUSB (works only if a compatible printer was already paired via
 // "Hubungkan Printer" and the browser/OS driver accepts raw JPEG bytes).
 async function tryWebUsbPrint(dataUrl) {
@@ -21,25 +25,76 @@ async function tryWebUsbPrint(dataUrl) {
   }
 }
 
-// Layer 2: browser print dialog with the photo filling the page.
+// Layer 2: dialog cetak browser lewat iframe tersembunyi. Tidak kena popup blocker,
+// dan dialognya otomatis menampilkan semua printer yang tersedia di perangkat.
 function tryBrowserPrintDialog(dataUrl) {
-  const printWindow = window.open('', '_blank', 'width=500,height=700');
-  if (!printWindow) return false;
+  const printFrame = document.createElement('iframe');
+  printFrame.style.cssText = 'position:fixed;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(printFrame);
 
-  printWindow.document.write(`
+  const frameDocument = printFrame.contentDocument;
+  frameDocument.open();
+  frameDocument.write(`
     <html>
-      <head><title>Cetak Foto</title></head>
-      <body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh">
-        <img src="${dataUrl}" style="max-width:100%;max-height:100%" onload="window.print()">
+      <head>
+        <title>Cetak Foto</title>
+        <style>
+          @page { size: ${PRINT_PAPER_WIDTH_MM}mm ${PRINT_PAPER_HEIGHT_MM}mm; margin: 0; }
+          html, body { margin: 0; padding: 0; width: ${PRINT_PAPER_WIDTH_MM}mm; height: ${PRINT_PAPER_HEIGHT_MM}mm; }
+          img { display: block; width: 100%; height: 100%; object-fit: contain; }
+        </style>
+      </head>
+      <body>
+        <img id="print-image" src="${dataUrl}">
       </body>
     </html>
   `);
-  printWindow.document.close();
+  frameDocument.close();
+
+  const image = frameDocument.getElementById('print-image');
+  image.onload = () => {
+    printFrame.contentWindow.focus();
+    printFrame.contentWindow.print();
+    setTimeout(() => printFrame.remove(), PRINT_FRAME_CLEANUP_MS);
+  };
   return true;
 }
 
-// Orchestrates the 3-layer fallback. Layer 3 (manual) is just informing the
-// user the file has already been downloaded so they can print it themselves.
+async function hasPairedUsbPrinter() {
+  if (!navigator.usb) return false;
+  const pairedDevices = await navigator.usb.getDevices();
+  return pairedDevices.length > 0;
+}
+
+async function registerPrinterOnServer(device) {
+  try {
+    await apiRequest('/printer', {
+      method: 'POST',
+      body: { printer_name: device.productName || 'USB Printer', connected: true },
+    });
+  } catch (err) {
+    console.warn('Gagal mencatat printer ke server:', err);
+  }
+}
+
+// Dipanggil langsung saat tombol Simpan diklik (butuh user gesture).
+// Kalau belum ada printer terhubung, browser otomatis mencari printer USB.
+// Jika dibatalkan atau tidak ada, alur lanjut ke dialog cetak browser.
+async function ensurePrinterConnected() {
+  if (!navigator.usb) return false;
+  try {
+    if (await hasPairedUsbPrinter()) return true;
+    const device = await connectUsbPrinter();
+    await registerPrinterOnServer(device);
+    showToast('Printer terhubung.');
+    return true;
+  } catch (err) {
+    console.warn('Pencarian printer USB dibatalkan atau gagal:', err);
+    return false;
+  }
+}
+
+// Orchestrates the fallback. Layer 3 (manual) just tells the user to print by hand.
 async function printPhoto(dataUrl) {
   const printedViaUsb = await tryWebUsbPrint(dataUrl);
   if (printedViaUsb) {
@@ -53,7 +108,7 @@ async function printPhoto(dataUrl) {
     return;
   }
 
-  showToast('Tidak bisa membuka dialog cetak. Foto sudah terdownload, cetak manual dari file tersebut.');
+  showToast('Tidak bisa membuka dialog cetak. Cetak manual dari dashboard admin.');
 }
 
 // Used by the admin dashboard's "Hubungkan Printer" button.
