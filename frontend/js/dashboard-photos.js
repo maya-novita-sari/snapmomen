@@ -47,6 +47,7 @@ function buildResultPhotoCardHtml(photo) {
       <div class="pc-meta">Hapus otomatis: ${formatIndonesianDate(photo.expires_at)}</div>
       <div class="photo-actions">
         <button class="btn btn-outline btn-sm" data-photo-action="save-device" data-photo-id="${photo.id}">Simpan ke Device</button>
+        <button class="btn btn-print btn-sm" data-photo-action="print" data-photo-id="${photo.id}">Print</button>
         <button class="btn btn-primary btn-sm" data-photo-action="add-gallery" data-photo-id="${photo.id}">Tambah ke Galeri</button>
         <button class="btn btn-danger btn-sm" data-photo-action="delete" data-photo-id="${photo.id}">Hapus</button>
       </div>
@@ -98,6 +99,7 @@ function handlePhotoGridClick(event) {
   const photoId = Number(button.dataset.photoId);
   const actions = {
     'save-device': () => saveAdminPhotoToDevice(photoId, button),
+    print: () => printAdminPhoto(photoId, button),
     'add-gallery': () => addPhotoToGallery(photoId),
     edit: () => openGalleryModal(button.closest('.photo-card'), photoId),
     delete: () => deletePhoto(photoId),
@@ -115,6 +117,22 @@ async function saveAdminPhotoToDevice(photoId, button) {
     showToast('Foto disimpan ke perangkat.');
   } catch (err) {
     showToast(err.message || 'Gagal mengunduh foto.');
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
+}
+
+// Print memakai jalur yang sama dengan studio: USB langsung, atau dialog cetak browser.
+async function printAdminPhoto(photoId, button) {
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Menyiapkan...';
+  try {
+    const { photo } = await apiRequest(`/photos?id=${photoId}`);
+    await printPhoto(photo.image_data);
+  } catch (err) {
+    showToast(err.message || 'Gagal mencetak foto.');
   } finally {
     button.disabled = false;
     button.textContent = originalLabel;
