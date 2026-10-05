@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   cacheDomElements();
   setupThemeEvents();
   setupTokenModal();
-  setupFilterEvents();
   startWelcomeCamera();
   await loadStudioData();
 });
@@ -249,29 +248,12 @@ async function submitToken() {
   }
 }
 
-function renderFilterButtons() {
-  byId('filter-toggle').innerHTML = PHOTO_FILTERS.map(buildFilterButtonHtml).join('');
-}
-
-function markActiveFilter() {
-  byId('filter-toggle').querySelectorAll('.filter-item').forEach((item) => {
-    item.classList.toggle('active', item.dataset.filterId === currentFilter);
-  });
-}
-
-function setFilter(filterId) {
-  currentFilter = findPhotoFilter(filterId).id;
-  byId('video').style.filter = findPhotoFilter(currentFilter).css;
-  markActiveFilter();
-}
-
-function setupFilterEvents() {
-  renderFilterButtons();
-  byId('filter-toggle').addEventListener('click', (event) => {
-    const item = event.target.closest('.filter-item');
-    if (item) setFilter(item.dataset.filterId);
-  });
-  markActiveFilter();
+function setFilter(type) {
+  currentFilter = type;
+  const video = document.getElementById('video');
+  video.classList.toggle('filter-bw', type === 'bw');
+  document.getElementById('filter-normal').classList.toggle('active', type === 'normal');
+  document.getElementById('filter-bw').classList.toggle('active', type === 'bw');
 }
 
 async function startCameraSession() {
@@ -378,7 +360,7 @@ function capturePhoto() {
 
   ctx.translate(canvas.width, 0);
   ctx.scale(-1, 1);
-  ctx.filter = findPhotoFilter(currentFilter).css;
+  ctx.filter = currentFilter === 'bw' ? 'grayscale(1)' : 'none';
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   ctx.filter = 'none';
 
