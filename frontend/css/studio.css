@@ -647,3 +647,26 @@ html, body {
 }
 
 .theme-option[data-allowed="false"]{ opacity:.6; }
+
+/* HP dan layar kecil: halaman boleh di-scroll supaya semua tombol terjangkau.
+   Desktop (lebih dari 950px) tidak diubah dan tetap tanpa scroll. */
+@media (max-width:950px) {
+    html, body {
+        height:auto;
+        min-height:100%;
+        overflow-x:hidden;
+        overflow-y:auto;
+        display:block;
+    }
+    .app-container {
+        height:auto;
+        min-height:100vh;
+        min-height:100dvh;
+        max-height:none;
+        justify-content:flex-start;
+        padding:16px 10px 32px;
+    }
+    .screen { height:auto; min-height:calc(100dvh - 48px); }
+    .photo-session-layout { height:auto; }
+    .theme-layout { max-height:none; flex:none; }
+}
