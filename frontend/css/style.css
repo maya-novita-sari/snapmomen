@@ -68,8 +68,9 @@ img{max-width:100%;display:block}
 .gallery-grid img{display:block;width:100%;height:auto;border-radius:var(--radius-md);box-shadow:var(--shadow);aspect-ratio:2/3;object-fit:contain;background:var(--white)}
 
 .gallery-more{display:flex;justify-content:center;margin-top:24px}
-.frame-showcase{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:20px}
-.frame-card{background:var(--white);border-radius:var(--radius-md);padding:12px;box-shadow:var(--shadow);text-align:center}
+.frame-showcase{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
+  padding:4px 4px 18px;scrollbar-width:thin}
+.frame-card{flex:0 0 190px;scroll-snap-align:start;background:var(--white);border-radius:var(--radius-md);padding:12px;box-shadow:var(--shadow);text-align:center}
 .frame-card .swatch{display:block;width:100%;height:auto;aspect-ratio:2/3;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:10px}
 .badge{display:inline-block;font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:999px;margin-top:4px}
 .badge-free{background:#DFF5EF;color:#1E7A64}
