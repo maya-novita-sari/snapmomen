@@ -39,6 +39,12 @@ function buildPhotoImageHtml(photo) {
   return `<img src="${photo.thumb_data}" alt="Foto ${escapeHtml(photo.username || '')}" loading="lazy" decoding="async">`;
 }
 
+function buildPhotoActionButtonHtml(photo, action, icon, label, variant) {
+  return buildIconButtonHtml({
+    icon, label, variant, attributes: `data-photo-action="${action}" data-photo-id="${photo.id}"`,
+  });
+}
+
 function buildResultPhotoCardHtml(photo) {
   return `
     <div class="photo-card">
@@ -46,10 +52,10 @@ function buildResultPhotoCardHtml(photo) {
       <div class="pc-meta">${escapeHtml(photo.username || 'Guest')}</div>
       <div class="pc-meta">Hapus otomatis: ${formatIndonesianDate(photo.expires_at)}</div>
       <div class="photo-actions">
-        <button class="btn btn-outline btn-sm" data-photo-action="save-device" data-photo-id="${photo.id}">Simpan ke Device</button>
-        <button class="btn btn-print btn-sm" data-photo-action="print" data-photo-id="${photo.id}">Print</button>
-        <button class="btn btn-primary btn-sm" data-photo-action="add-gallery" data-photo-id="${photo.id}">Tambah ke Galeri</button>
-        <button class="btn btn-danger btn-sm" data-photo-action="delete" data-photo-id="${photo.id}">Hapus</button>
+        ${buildPhotoActionButtonHtml(photo, 'delete', 'trash', 'Hapus', 'danger')}
+        ${buildPhotoActionButtonHtml(photo, 'save-device', 'download', 'Simpan ke Device', 'outline')}
+        ${buildPhotoActionButtonHtml(photo, 'add-gallery', 'plus', 'Tambah ke Galeri', 'primary')}
+        ${buildPhotoActionButtonHtml(photo, 'print', 'print', 'Print', 'print')}
       </div>
     </div>`;
 }
@@ -61,8 +67,8 @@ function buildGalleryPhotoCardHtml(photo) {
       ${buildPhotoImageHtml(photo)}
       <div class="pc-meta">${caption}</div>
       <div class="photo-actions">
-        <button class="btn btn-outline btn-sm" data-photo-action="edit" data-photo-id="${photo.id}">Edit</button>
-        <button class="btn btn-danger btn-sm" data-photo-action="delete" data-photo-id="${photo.id}">Hapus</button>
+        ${buildPhotoActionButtonHtml(photo, 'edit', 'pen', 'Edit', 'outline')}
+        ${buildPhotoActionButtonHtml(photo, 'delete', 'trash', 'Hapus', 'danger')}
       </div>
     </div>`;
 }
@@ -108,9 +114,7 @@ function handlePhotoGridClick(event) {
 }
 
 async function saveAdminPhotoToDevice(photoId, button) {
-  const originalLabel = button.textContent;
   button.disabled = true;
-  button.textContent = 'Mengunduh...';
   try {
     const { photo } = await apiRequest(`/photos?id=${photoId}`);
     downloadDataUrl(photo.image_data, `snapmomen-${photoId}.jpg`);
@@ -119,15 +123,12 @@ async function saveAdminPhotoToDevice(photoId, button) {
     showToast(err.message || 'Gagal mengunduh foto.');
   } finally {
     button.disabled = false;
-    button.textContent = originalLabel;
   }
 }
 
 // Print memakai jalur yang sama dengan studio: USB langsung, atau dialog cetak browser.
 async function printAdminPhoto(photoId, button) {
-  const originalLabel = button.textContent;
   button.disabled = true;
-  button.textContent = 'Menyiapkan...';
   try {
     const { photo } = await apiRequest(`/photos?id=${photoId}`);
     await printPhoto(photo.image_data);
@@ -135,7 +136,6 @@ async function printAdminPhoto(photoId, button) {
     showToast(err.message || 'Gagal mencetak foto.');
   } finally {
     button.disabled = false;
-    button.textContent = originalLabel;
   }
 }
 

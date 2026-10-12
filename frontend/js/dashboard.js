@@ -293,15 +293,16 @@ function buildFrameCategoryHtml(frame) {
   return CATEGORY_LABELS[frame.category] || frame.category;
 }
 
-function buildFrameTokenHtml(frame) {
+function buildFrameOwnerHtml(frame) {
+  if (frame.category !== 'custom' || !frame.owner_username) return '';
+  return `<div class="afc-meta">Pemilik: ${escapeHtml(frame.owner_username)}</div>`;
+}
+
+function buildFrameCopyButtonHtml(frame) {
   if (frame.category !== 'custom' || !frame.access_token) return '';
-  const owner = frame.owner_username ? `<div class="afc-meta">Pemilik: ${escapeHtml(frame.owner_username)}</div>` : '';
-  return `
-    ${owner}
-    <div class="code-chip">${frame.access_token}</div>
-    <div class="afc-actions" style="margin-bottom:8px">
-      <button class="btn btn-pink btn-sm" data-copy-token="${frame.access_token}">Copy Token</button>
-    </div>`;
+  return buildIconButtonHtml({
+    icon: 'copy', label: 'Salin token', variant: 'outline', attributes: `data-copy-token="${frame.access_token}"`,
+  });
 }
 
 function buildFrameCardHtml(frame) {
@@ -310,10 +311,11 @@ function buildFrameCardHtml(frame) {
       <img src="${frame.image_url}" alt="${escapeHtml(frame.name)}" loading="lazy" decoding="async">
       <div class="afc-name">${escapeHtml(frame.name)}</div>
       <div class="afc-meta">${frame.size} · ${buildFrameCategoryHtml(frame)}</div>
-      ${buildFrameTokenHtml(frame)}
+      ${buildFrameOwnerHtml(frame)}
       <div class="afc-actions">
-        <button class="btn btn-outline btn-sm" data-edit="${frame.id}">Edit</button>
-        <button class="btn btn-danger btn-sm" data-delete="${frame.id}">Hapus</button>
+        ${buildFrameCopyButtonHtml(frame)}
+        ${buildIconButtonHtml({ icon: 'pen', label: 'Edit', variant: 'outline', attributes: `data-edit="${frame.id}"` })}
+        ${buildIconButtonHtml({ icon: 'trash', label: 'Hapus', variant: 'danger', attributes: `data-delete="${frame.id}"` })}
       </div>
     </div>`;
 }

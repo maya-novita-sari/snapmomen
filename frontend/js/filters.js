@@ -11,7 +11,7 @@ const PHOTO_FILTERS = [
   { id: 'warm',    label: 'Warm',    css: 'sepia(0.3) saturate(1.4) hue-rotate(-10deg)' },
   { id: 'rose',    label: 'Rose',    css: 'sepia(0.2) saturate(1.3) hue-rotate(-20deg) brightness(1.05)' },
   { id: 'film',    label: 'Film',    css: 'contrast(1.2) saturate(0.9) sepia(0.1)' },
-  { id: 'cool',    label: 'Cool',    css: 'saturate(1.1) hue-rotate(180deg) brightness(1.02)' },
+  { id: 'cool',    label: 'Cool',    css: 'invert(1) sepia(0.5) invert(1) brightness(1.14) contrast(0.84) saturate(0.85)' },
   { id: 'dreamy',  label: 'Dreamy',  css: 'saturate(1.2) brightness(1.1) blur(0.5px)' },
   { id: 'vivid',   label: 'Vivid',   css: 'saturate(1.6) contrast(1.15)' },
 ];
