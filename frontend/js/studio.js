@@ -14,6 +14,7 @@ let welcomeStream   = null;
 let cameraStream    = null;
 let photoTakenCount = 0;
 let isCountingDown  = false;
+let countdownIntervalId = null;
 let currentFilter   = 'normal';
 
 const THEME_CATEGORIES = ['free', 'premium', 'custom'];
@@ -64,9 +65,12 @@ function goToScreen(screenId) {
 
   if (screenId === 'screen-theme') showThemeScreen();
   if (screenId === 'screen-result') processResult();
+  if (screenId === 'screen-camera') startFilterPreview();
+  else stopFilterPreview();
 }
 
 function startApp() {
+  startSessionTimer();
   goToScreen('screen-frame');
 }
 
@@ -250,11 +254,11 @@ async function submitToken() {
 }
 
 function renderFilterButtons() {
-  byId('filter-toggle').innerHTML = PHOTO_FILTERS.map(buildFilterButtonHtml).join('');
+  byId('filter-list').innerHTML = PHOTO_FILTERS.map(buildFilterButtonHtml).join('');
 }
 
 function markActiveFilter() {
-  byId('filter-toggle').querySelectorAll('.filter-item').forEach((item) => {
+  byId('filter-list').querySelectorAll('.filter-item').forEach((item) => {
     item.classList.toggle('active', item.dataset.filterId === currentFilter);
   });
 }
@@ -265,12 +269,27 @@ function setFilter(filterId) {
   markActiveFilter();
 }
 
+function centerFilterItem(item) {
+  const list = byId('filter-list');
+  list.scrollLeft = item.offsetLeft - (list.clientWidth - item.offsetWidth) / 2;
+}
+
+// Roda mouse vertikal menggeser daftar filter ke samping (desktop).
+function scrollFilterListHorizontally(event) {
+  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+  event.preventDefault();
+  byId('filter-list').scrollLeft += event.deltaY;
+}
+
 function setupFilterEvents() {
   renderFilterButtons();
-  byId('filter-toggle').addEventListener('click', (event) => {
+  byId('filter-list').addEventListener('click', (event) => {
     const item = event.target.closest('.filter-item');
-    if (item) setFilter(item.dataset.filterId);
+    if (!item) return;
+    setFilter(item.dataset.filterId);
+    centerFilterItem(item);
   });
+  byId('filter-list').addEventListener('wheel', scrollFilterListHorizontally, { passive: false });
   markActiveFilter();
 }
 
@@ -352,7 +371,7 @@ function startCountdown() {
   text.textContent = count;
   overlay.classList.add('active');
 
-  const interval = setInterval(() => {
+  countdownIntervalId = setInterval(() => {
     count--;
     if (count > 0) {
       text.textContent = count;
@@ -360,7 +379,8 @@ function startCountdown() {
     }
     text.textContent = '';
     overlay.classList.remove('active');
-    clearInterval(interval);
+    clearInterval(countdownIntervalId);
+    countdownIntervalId = null;
     isCountingDown = false;
     capturePhoto();
   }, 1000);
@@ -563,13 +583,46 @@ async function saveAndPrintResult() {
   }
 }
 
+function cancelActiveCountdown() {
+  clearInterval(countdownIntervalId);
+  countdownIntervalId = null;
+  isCountingDown = false;
+  byId('countdown-overlay').classList.remove('active');
+  byId('countdown-text').textContent = '';
+}
+
+function resetFrameSelection() {
+  StudioState.model = null;
+  StudioState.frame = null;
+  activeThemeCategory = 'free';
+  document.querySelectorAll('.frame-option').forEach((option) => option.classList.remove('selected'));
+  byId('btn-next-frame-model').disabled = true;
+  dom.nextThemeButton.disabled = true;
+  dom.themePreview.style.backgroundImage = '';
+  dom.liveFrameOverlay.removeAttribute('src');
+  dom.liveFrameOverlay.style.display = 'none';
+}
+
+// Kembalikan semua state studio ke kondisi awal (dipakai saat sesi berakhir).
+function resetStudioState() {
+  cancelActiveCountdown();
+  resetFrameSelection();
+  StudioState.photoData = [];
+  StudioState.livePreviewSlots = [];
+  photoTakenCount = 0;
+  setFilter('normal');
+}
+
 function resetApp() {
+  clearSessionTimer();
   StudioState.photoData = [];
   photoTakenCount = 0;
   goToScreen('screen-welcome');
 }
 
 window.addEventListener('beforeunload', () => {
+  clearSessionTimer();
+  stopFilterPreview();
   cameraStream?.getTracks().forEach((track) => track.stop());
   welcomeStream?.getTracks().forEach((track) => track.stop());
 });
