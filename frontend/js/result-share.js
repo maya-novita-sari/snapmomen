@@ -1,7 +1,7 @@
 const DEVICE_JPEG_QUALITY = 0.92;
 const PHOTO_UPLOAD_TIMEOUT_MS = 30000;
 const DOWNLOAD_REVOKE_DELAY_MS = 10000;
-const SECOND_DOWNLOAD_DELAY_MS = 600;
+const SECOND_DOWNLOAD_DELAY_MS = 150;
 const MAX_VIDEO_DATA_CHARS = 3000000;
 
 const SAVE_MESSAGES = {
@@ -68,7 +68,8 @@ async function saveCustomerBundle(canvas, videoBlob) {
     throw new Error('Browser ini tidak mendukung download otomatis.');
   }
   const baseName = buildBundleBaseName();
-  triggerBlobDownload(await canvasToJpegBlob(canvas), `${baseName}.jpg`);
+  const photoBlob = await canvasToJpegBlob(canvas);
+  triggerBlobDownload(photoBlob, `${baseName}.jpg`);
   if (!videoBlob) return;
   await waitMilliseconds(SECOND_DOWNLOAD_DELAY_MS);
   triggerBlobDownload(videoBlob, `${baseName}.${getVideoFileExtension(videoBlob)}`);
@@ -116,12 +117,15 @@ async function saveCustomerBundleOnly(canvas, bundle) {
   showToast(SAVE_MESSAGES.customer);
 }
 
+// Mengembalikan true kalau foto berhasil disimpan.
 async function saveAndSharePhoto(canvas, frameId, bundle = {}) {
   try {
     if (isAdminUser()) await saveAdminPhotoThenPrint(canvas, frameId, bundle);
     else await saveCustomerBundleOnly(canvas, bundle);
+    return true;
   } catch (err) {
     console.error('Simpan foto gagal:', err);
     showToast(`${err.message} Foto belum tersimpan, coba klik Simpan lagi.`);
+    return false;
   }
 }

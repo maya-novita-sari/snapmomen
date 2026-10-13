@@ -529,6 +529,7 @@ async function processResult() {
   const ctx = canvas.getContext('2d');
   const saveBtn = document.getElementById('btn-save');
   saveBtn.disabled = true;
+  byId('btn-finish').disabled = true;
 
   canvas.width = RESULT_WIDTH;
   canvas.height = RESULT_HEIGHT;
@@ -729,7 +730,8 @@ async function saveAndPrintResult() {
 
   try {
     const videoBlob = await getBundleVideoBlob();
-    await saveAndSharePhoto(byId('result-canvas'), StudioState.frame.id, { videoBlob, filterName: currentFilter });
+    const isSaved = await saveAndSharePhoto(byId('result-canvas'), StudioState.frame.id, { videoBlob, filterName: currentFilter });
+    if (isSaved) byId('btn-finish').disabled = false;
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Simpan';
