@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupThemeEvents();
   setupTokenModal();
   setupFilterEvents();
+  setupReplayOnTap();
   startWelcomeCamera();
   await loadStudioData();
 });
@@ -550,8 +551,7 @@ function discardBundleVideo() {
   StudioState.bundleBlob = null;
   StudioState.bundlePromise = null;
   stopReplayVideo();
-  const replayButton = byId('btn-replay');
-  if (replayButton) replayButton.style.display = 'none';
+  byId('result-canvas').classList.remove('has-video');
 }
 
 async function collectSlotClips() {
@@ -573,7 +573,7 @@ function startBundleVideoBuild(slots, rects, frameImage) {
     });
     if (buildId !== StudioState.bundleBuildId) return null;
     StudioState.bundleBlob = videoBlob;
-    byId('btn-replay').style.display = videoBlob ? 'inline-flex' : 'none';
+    byId('result-canvas').classList.toggle('has-video', Boolean(videoBlob));
     return videoBlob;
   })().catch((err) => {
     console.warn('Video bundle gagal dibuat:', err);
@@ -583,6 +583,10 @@ function startBundleVideoBuild(slots, rects, frameImage) {
 
 async function getBundleVideoBlob() {
   return StudioState.bundlePromise ? StudioState.bundlePromise : null;
+}
+
+function setupReplayOnTap() {
+  byId('result-canvas').addEventListener('click', playRecordedVideo);
 }
 
 function stopReplayVideo() {

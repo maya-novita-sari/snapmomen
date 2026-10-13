@@ -759,4 +759,4 @@ html, body {
 
 #result-video.playing { display:block; }
 
-.btn-replay { margin-bottom:10px; }
+#result-canvas.has-video { cursor:pointer; }
