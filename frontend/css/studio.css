@@ -387,6 +387,31 @@ html, body {
 
 .filter-list::-webkit-scrollbar { display:none; }
 
+.filter-carousel {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    max-width:100%;
+}
+
+.filter-arrow {
+    flex:0 0 auto;
+    width:30px;
+    height:30px;
+    border:none;
+    border-radius:50%;
+    background:#fff;
+    color:#333;
+    font-size:22px;
+    line-height:1;
+    padding:0 0 3px;
+    cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,0.15);
+}
+
+.filter-arrow:disabled { opacity:0.35; cursor:default; }
+
 .filter-item {
     flex:0 0 auto;
     width:var(--filter-item-width);

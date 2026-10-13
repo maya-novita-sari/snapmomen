@@ -63,3 +63,36 @@ function startFilterPreview() {
   drawFilterPreviews();
   filterPreviewTimerId = setInterval(drawFilterPreviews, FILTER_PREVIEW_INTERVAL_MS);
 }
+
+
+// Tombol panah menggeser daftar filter; geser manual tetap bisa dipakai.
+const FILTER_ARROW_STEP_ITEMS = 2;
+
+function getFilterScrollStep(list) {
+  const item = list.querySelector('.filter-item');
+  if (!item) return list.clientWidth;
+  const gap = parseFloat(getComputedStyle(list).columnGap) || 0;
+  return (item.offsetWidth + gap) * FILTER_ARROW_STEP_ITEMS;
+}
+
+function updateFilterArrowState(list, prevButton, nextButton) {
+  prevButton.disabled = list.scrollLeft <= 1;
+  nextButton.disabled = list.scrollLeft + list.clientWidth >= list.scrollWidth - 1;
+}
+
+function setupFilterArrows() {
+  const list = document.getElementById('filter-list');
+  const prevButton = document.getElementById('filter-prev');
+  const nextButton = document.getElementById('filter-next');
+  if (!list || !prevButton || !nextButton) return;
+
+  const refresh = () => updateFilterArrowState(list, prevButton, nextButton);
+  prevButton.addEventListener('click', () => list.scrollBy({ left: -getFilterScrollStep(list), behavior: 'smooth' }));
+  nextButton.addEventListener('click', () => list.scrollBy({ left: getFilterScrollStep(list), behavior: 'smooth' }));
+  list.addEventListener('scroll', refresh, { passive: true });
+  new ResizeObserver(refresh).observe(list);
+  new MutationObserver(refresh).observe(list, { childList: true });
+  refresh();
+}
+
+document.addEventListener('DOMContentLoaded', setupFilterArrows);
