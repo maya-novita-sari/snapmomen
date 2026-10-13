@@ -118,12 +118,12 @@
         <div id="result-canvas-wrap" class="result-canvas-wrap">
             <canvas id="result-canvas"></canvas>
             <video id="result-video" playsinline muted></video>
-            <button type="button" class="btn-replay-icon" id="btn-replay" onclick="playRecordedVideo()" aria-label="Putar ulang video" style="display:none">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
-            </button>
         </div>
         <div class="result-actions">
             <button class="btn btn-back" onclick="goToScreen('screen-camera')">Back</button>
+            <button type="button" class="btn btn-replay" id="btn-replay" onclick="playRecordedVideo()" aria-label="Putar ulang video" style="display:none">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+            </button>
             <button class="btn btn-next" id="btn-save" onclick="saveAndPrintResult()">Simpan</button>
         </div>
     </div>

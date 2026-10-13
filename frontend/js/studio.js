@@ -589,7 +589,7 @@ async function getBundleVideoBlob() {
 
 function setReplayButtonVisible(isVisible) {
   const replayButton = byId('btn-replay');
-  if (replayButton) replayButton.style.display = isVisible ? 'flex' : 'none';
+  if (replayButton) replayButton.style.display = isVisible ? 'inline-flex' : 'none';
 }
 
 function setupReplayOnTap() {
