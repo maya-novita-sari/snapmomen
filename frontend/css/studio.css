@@ -617,6 +617,7 @@ html, body {
 }
 
 .result-canvas-wrap {
+    position:relative;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -738,3 +739,24 @@ html, body {
     .photo-session-layout { height:auto; }
     .theme-layout { max-height:none; flex:none; }
 }
+
+
+#result-video {
+    display:none;
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    height:70vh;
+    max-height:600px;
+    width:auto;
+    aspect-ratio:2/3;
+    border-radius:5px;
+    border:3px solid #5D4037;
+    background:white;
+    object-fit:cover;
+}
+
+#result-video.playing { display:block; }
+
+.btn-replay { margin-bottom:10px; }

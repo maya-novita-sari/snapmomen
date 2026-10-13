@@ -8,10 +8,13 @@ export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 const PHOTO_LIFETIME_DAYS  = 3;
 const MAX_IMAGE_DATA_CHARS = 1500000;
 const MAX_THUMB_DATA_CHARS = 200000;
+const MAX_VIDEO_DATA_CHARS = 3000000;
 const MAX_CAPTION_LENGTH   = 120;
+const MAX_FILTER_NAME_LENGTH = 50;
 const DEFAULT_PAGE_SIZE    = 12;
 const MAX_PAGE_SIZE        = 48;
 const IMAGE_DATA_PREFIX    = 'data:image/';
+const VIDEO_DATA_PREFIX    = 'data:video/';
 
 export default async function handler(req, res) {
   if (handlePreflight(req, res)) return;
@@ -38,14 +41,27 @@ function splitPage(rows, limit) {
   return { photos: rows.slice(0, limit), has_more: rows.length > limit };
 }
 
-function validateImageData(imageData, maxChars, label) {
-  if (typeof imageData !== 'string' || !imageData.startsWith(IMAGE_DATA_PREFIX)) {
+function validateMediaData(mediaData, prefix, maxChars, label) {
+  if (typeof mediaData !== 'string' || !mediaData.startsWith(prefix)) {
     return `Data ${label} tidak valid.`;
   }
-  if (imageData.length > maxChars) {
-    return `Ukuran ${label} terlalu besar (maks sekitar 1 MB). Kompres dulu sebelum dikirim.`;
+  if (mediaData.length > maxChars) {
+    return `Ukuran ${label} terlalu besar. Kompres dulu sebelum dikirim.`;
   }
   return null;
+}
+
+function validateImageData(imageData, maxChars, label) {
+  return validateMediaData(imageData, IMAGE_DATA_PREFIX, maxChars, label);
+}
+
+function validateVideoData(videoData) {
+  return validateMediaData(videoData, VIDEO_DATA_PREFIX, MAX_VIDEO_DATA_CHARS, 'video');
+}
+
+function cleanFilterName(filterName) {
+  if (!filterName) return null;
+  return String(filterName).trim().slice(0, MAX_FILTER_NAME_LENGTH);
 }
 
 // Admin dari .env punya id 0 dan tidak ada di tabel users, jadi foreign key harus NULL.
@@ -85,7 +101,7 @@ async function handleResultList(req, res) {
       ? await sql`
           SELECT p.id, p.user_id, p.frame_id, COALESCE(p.thumb_data, p.image_data) AS thumb_data,
                  p.printed, p.is_galeri, p.is_hasil, p.is_permanent, p.caption, p.expires_at, p.created_at,
-                 u.username
+                 p.has_video, p.filter_name, u.username
           FROM photos p
           LEFT JOIN users u ON u.id = p.user_id
           WHERE p.is_galeri = FALSE
@@ -94,7 +110,8 @@ async function handleResultList(req, res) {
         `
       : await sql`
           SELECT id, user_id, frame_id, COALESCE(thumb_data, image_data) AS thumb_data,
-                 printed, is_galeri, is_hasil, is_permanent, caption, expires_at, created_at
+                 printed, is_galeri, is_hasil, is_permanent, caption, expires_at, created_at,
+                 has_video, filter_name
           FROM photos
           WHERE user_id = ${user.id} AND is_galeri = FALSE
           ORDER BY created_at DESC
@@ -129,23 +146,27 @@ async function handleSave(req, res) {
   const user = requireAdmin(req, res);
   if (!user) return;
 
-  const { image_data, thumb_data, frame_id, caption, is_galeri } = req.body || {};
+  const { image_data, thumb_data, video_data, frame_id, caption, is_galeri, filter_name } = req.body || {};
   const imageError = validateImageData(image_data, MAX_IMAGE_DATA_CHARS, 'foto');
   if (imageError) return sendError(res, 400, imageError);
 
   const thumbError = thumb_data ? validateImageData(thumb_data, MAX_THUMB_DATA_CHARS, 'thumbnail') : null;
   if (thumbError) return sendError(res, 400, thumbError);
 
+  const videoError = video_data ? validateVideoData(video_data) : null;
+  if (videoError) return sendError(res, 400, videoError);
+
   const isGallery = Boolean(is_galeri);
   const ownerId = resolvePhotoOwnerId(user);
   try {
     const [photo] = await sql`
-      INSERT INTO photos (user_id, frame_id, image_data, thumb_data, caption,
+      INSERT INTO photos (user_id, frame_id, image_data, thumb_data, video_data, has_video, filter_name, caption,
                           is_galeri, is_hasil, is_permanent, expires_at)
-      VALUES (${ownerId}, ${frame_id || null}, ${image_data}, ${thumb_data || null}, ${cleanCaption(caption)},
+      VALUES (${ownerId}, ${frame_id || null}, ${image_data}, ${thumb_data || null}, ${video_data || null},
+              ${Boolean(video_data)}, ${cleanFilterName(filter_name)}, ${cleanCaption(caption)},
               ${isGallery}, FALSE, ${isGallery},
               NOW() + make_interval(days => ${PHOTO_LIFETIME_DAYS}))
-      RETURNING id, user_id, frame_id, is_galeri, is_permanent, caption, expires_at, created_at
+      RETURNING id, user_id, frame_id, is_galeri, is_permanent, caption, has_video, filter_name, expires_at, created_at
     `;
     return sendOk(res, { photo });
   } catch (err) {

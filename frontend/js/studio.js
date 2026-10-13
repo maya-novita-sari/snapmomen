@@ -8,6 +8,9 @@ const StudioState = {
   frame    : null,       
   photoData: [],         
   livePreviewSlots: [],
+  clipPromises: [],
+  bundleBlob: null,
+  bundleBuildId: 0,
 };
 
 let welcomeStream   = null;
@@ -16,6 +19,8 @@ let photoTakenCount = 0;
 let isCountingDown  = false;
 let countdownIntervalId = null;
 let currentFilter   = 'normal';
+let activeClip      = null;
+let replayObjectUrl = null;
 
 const THEME_CATEGORIES = ['free', 'premium', 'custom'];
 const CUSTOM_LOCKED_MESSAGE = 'Masukin token dulu buat akses bingkai custom';
@@ -64,6 +69,7 @@ function goToScreen(screenId) {
   document.getElementById(screenId).classList.add('active');
 
   if (screenId === 'screen-theme') showThemeScreen();
+  if (screenId !== 'screen-result') stopReplayVideo();
   if (screenId === 'screen-result') processResult();
   if (screenId === 'screen-camera') startFilterPreview();
   else stopFilterPreview();
@@ -297,6 +303,7 @@ async function startCameraSession() {
   if (!StudioState.frame) return;
 
   StudioState.photoData = [];
+  StudioState.clipPromises = [];
   photoTakenCount = 0;
   isCountingDown = false;
 
@@ -365,6 +372,7 @@ function startCountdown() {
   if (isCountingDown || photoTakenCount >= config.captures) return;
 
   isCountingDown = true;
+  activeClip = startCountdownClip(byId('video'), () => findPhotoFilter(currentFilter).css);
   const overlay = document.getElementById('countdown-overlay');
   const text = document.getElementById('countdown-text');
   let count = 3;
@@ -404,6 +412,7 @@ function capturePhoto() {
 
   const dataUrl = canvas.toDataURL('image/jpeg');
   StudioState.photoData.push(dataUrl);
+  StudioState.clipPromises.push(finishActiveClip());
   photoTakenCount++;
 
   updateLivePreviewWithNewPhoto(dataUrl);
@@ -450,7 +459,10 @@ function retakeSlot(slotIndex) {
   }
 
   const idx = StudioState.photoData.indexOf(photoToRemove);
-  if (idx > -1) StudioState.photoData.splice(idx, 1);
+  if (idx > -1) {
+    StudioState.photoData.splice(idx, 1);
+    StudioState.clipPromises.splice(idx, 1);
+  }
   photoTakenCount = StudioState.photoData.length;
 
   if (photoTakenCount < config.captures) {
@@ -461,57 +473,138 @@ function retakeSlot(slotIndex) {
 }
 
 
-async function processResult() {
-  const canvas = document.getElementById('result-canvas');
-  const ctx = canvas.getContext('2d');
-  const saveBtn = document.getElementById('btn-save');
-  saveBtn.disabled = true;
+const RESULT_WIDTH  = 600;
+const RESULT_HEIGHT = 900;
 
-  const W = 600;
-  const H = 900;
-  canvas.width = W;
-  canvas.height = H;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, W, H);
-
-  const slots = StudioState.model === 'left' ? duplicateForLeftModel(StudioState.photoData) : StudioState.photoData;
-
-  const topOffset  = H * 0.07;
-  const sideOffset = W * 0.03;
-  const gridW      = W - sideOffset * 2;
-  const gridH      = H * 0.68;
+function computeSlotRects(width, height) {
+  const topOffset  = height * 0.07;
+  const sideOffset = width * 0.03;
+  const gridW      = width - sideOffset * 2;
+  const gridH      = height * 0.68;
   const gapX       = gridW * 0.06;
   const gapY       = gridH * 0.035;
   const slotW      = (gridW - gapX) / 2;
   const slotH      = (gridH - gapY * 2) / 3;
 
-  for (let i  = 0; i < slots.length; i++) {
-    const col = i % 2;
-    const row = Math.floor(i / 2);
-    const x   = sideOffset + col * (slotW + gapX);
-    const y   = topOffset + row * (slotH + gapY);
+  return Array.from({ length: MODEL_CONFIG.right.slots }, (_, i) => ({
+    x: sideOffset + (i % 2) * (slotW + gapX),
+    y: topOffset + Math.floor(i / 2) * (slotH + gapY),
+    width: slotW,
+    height: slotH,
+  }));
+}
 
+async function drawResultSlots(ctx, slots, rects) {
+  for (let i = 0; i < slots.length; i++) {
+    const { x, y, width, height } = rects[i];
     ctx.save();
-    roundedRectPath(ctx, x, y, slotW, slotH, 6);
+    roundedRectPath(ctx, x, y, width, height, 6);
     ctx.clip();
     if (slots[i]) {
       const img = await loadImage(slots[i]);
-      drawImageCover(ctx, img, x, y, slotW, slotH);
+      drawImageCover(ctx, img, x, y, width, height);
     } else {
       ctx.fillStyle = '#f0f0f0';
-      ctx.fillRect(x, y, slotW, slotH);
+      ctx.fillRect(x, y, width, height);
     }
     ctx.restore();
   }
+}
 
+async function loadFrameImageOrNull() {
   try {
-    const frameImg = await loadImageStrict(StudioState.frame.image_url);
-    ctx.drawImage(frameImg, 0, 0, W, H);
+    return await loadImageStrict(StudioState.frame.image_url);
   } catch {
     console.warn('Gambar bingkai gagal dimuat.');
+    return null;
   }
+}
+
+async function processResult() {
+  const canvas = document.getElementById('result-canvas');
+  const ctx = canvas.getContext('2d');
+  const saveBtn = document.getElementById('btn-save');
+  saveBtn.disabled = true;
+  discardBundleVideo();
+
+  canvas.width = RESULT_WIDTH;
+  canvas.height = RESULT_HEIGHT;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, RESULT_WIDTH, RESULT_HEIGHT);
+
+  const slots = StudioState.model === 'left' ? duplicateForLeftModel(StudioState.photoData) : StudioState.photoData;
+  const rects = computeSlotRects(RESULT_WIDTH, RESULT_HEIGHT);
+  await drawResultSlots(ctx, slots, rects);
+
+  const frameImage = await loadFrameImageOrNull();
+  if (frameImage) ctx.drawImage(frameImage, 0, 0, RESULT_WIDTH, RESULT_HEIGHT);
 
   saveBtn.disabled = false;
+  startBundleVideoBuild(slots, rects, frameImage);
+}
+
+// ---------- Video bundle ----------
+
+function discardBundleVideo() {
+  StudioState.bundleBuildId++;
+  StudioState.bundleBlob = null;
+  StudioState.bundlePromise = null;
+  stopReplayVideo();
+  const replayButton = byId('btn-replay');
+  if (replayButton) replayButton.style.display = 'none';
+}
+
+async function collectSlotClips() {
+  const clips = await Promise.all(StudioState.clipPromises);
+  return StudioState.model === 'left' ? duplicateForLeftModel(clips) : clips;
+}
+
+async function buildSlotImages(slots) {
+  return Promise.all(slots.map((slot) => (slot ? loadImage(slot) : null)));
+}
+
+function startBundleVideoBuild(slots, rects, frameImage) {
+  const buildId = ++StudioState.bundleBuildId;
+  StudioState.bundlePromise = (async () => {
+    const clipBlobs = await collectSlotClips();
+    const slotImages = await buildSlotImages(slots);
+    const videoBlob = await buildBundleVideo({
+      clipBlobs, slotImages, rects, frameImage, width: RESULT_WIDTH, height: RESULT_HEIGHT,
+    });
+    if (buildId !== StudioState.bundleBuildId) return null;
+    StudioState.bundleBlob = videoBlob;
+    byId('btn-replay').style.display = videoBlob ? 'inline-flex' : 'none';
+    return videoBlob;
+  })().catch((err) => {
+    console.warn('Video bundle gagal dibuat:', err);
+    return null;
+  });
+}
+
+async function getBundleVideoBlob() {
+  return StudioState.bundlePromise ? StudioState.bundlePromise : null;
+}
+
+function stopReplayVideo() {
+  const video = byId('result-video');
+  if (!video) return;
+  video.pause();
+  video.classList.remove('playing');
+  video.removeAttribute('src');
+  if (replayObjectUrl) URL.revokeObjectURL(replayObjectUrl);
+  replayObjectUrl = null;
+}
+
+function playRecordedVideo() {
+  if (!StudioState.bundleBlob) return;
+  const video = byId('result-video');
+  stopReplayVideo();
+  replayObjectUrl = URL.createObjectURL(StudioState.bundleBlob);
+  video.src = replayObjectUrl;
+  video.onended = stopReplayVideo;
+  video.onclick = stopReplayVideo;
+  video.classList.add('playing');
+  video.play().catch(stopReplayVideo);
 }
 
 function duplicateForLeftModel(photos) {
@@ -576,14 +669,22 @@ async function saveAndPrintResult() {
   saveBtn.textContent = 'Menyimpan...';
 
   try {
-    await saveAndSharePhoto(byId('result-canvas'), StudioState.frame.id);
+    const videoBlob = await getBundleVideoBlob();
+    await saveAndSharePhoto(byId('result-canvas'), StudioState.frame.id, { videoBlob, filterName: currentFilter });
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Simpan';
   }
 }
 
+function finishActiveClip() {
+  const clipPromise = activeClip ? activeClip.stop() : Promise.resolve(null);
+  activeClip = null;
+  return clipPromise;
+}
+
 function cancelActiveCountdown() {
+  finishActiveClip();
   clearInterval(countdownIntervalId);
   countdownIntervalId = null;
   isCountingDown = false;
@@ -608,7 +709,9 @@ function resetStudioState() {
   cancelActiveCountdown();
   resetFrameSelection();
   StudioState.photoData = [];
+  StudioState.clipPromises = [];
   StudioState.livePreviewSlots = [];
+  discardBundleVideo();
   photoTakenCount = 0;
   setFilter('normal');
 }
@@ -616,6 +719,8 @@ function resetStudioState() {
 function resetApp() {
   clearSessionTimer();
   StudioState.photoData = [];
+  StudioState.clipPromises = [];
+  discardBundleVideo();
   photoTakenCount = 0;
   goToScreen('screen-welcome');
 }

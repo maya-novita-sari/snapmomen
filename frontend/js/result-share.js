@@ -1,14 +1,16 @@
 const DEVICE_JPEG_QUALITY = 0.92;
 const PHOTO_UPLOAD_TIMEOUT_MS = 30000;
 const DOWNLOAD_REVOKE_DELAY_MS = 10000;
+const SECOND_DOWNLOAD_DELAY_MS = 600;
+const MAX_VIDEO_DATA_CHARS = 3000000;
 
 const SAVE_MESSAGES = {
   admin   : 'Foto tersimpan ke dashboard',
   customer: 'Foto tersimpan di perangkatmu.',
 };
 
-function buildPhotoFileName() {
-  return `snapmomen-${Date.now()}.jpg`;
+function buildBundleBaseName() {
+  return `snapmomen-${Date.now()}`;
 }
 
 function isAdminUser() {
@@ -55,44 +57,69 @@ function triggerBlobDownload(blob, fileName) {
   setTimeout(() => URL.revokeObjectURL(objectUrl), DOWNLOAD_REVOKE_DELAY_MS);
 }
 
-async function saveCustomerPhoto(canvas) {
+function waitMilliseconds(durationMs) {
+  return new Promise((resolve) => setTimeout(resolve, durationMs));
+}
+
+// Customer: foto lalu video (kalau ada), dua download terpisah dengan nama dasar sama.
+async function saveCustomerBundle(canvas, videoBlob) {
   assertCanvasHasImage(canvas);
   if (!isDownloadSupported()) {
     throw new Error('Browser ini tidak mendukung download otomatis.');
   }
-  const blob = await canvasToJpegBlob(canvas);
-  triggerBlobDownload(blob, buildPhotoFileName());
+  const baseName = buildBundleBaseName();
+  triggerBlobDownload(await canvasToJpegBlob(canvas), `${baseName}.jpg`);
+  if (!videoBlob) return;
+  await waitMilliseconds(SECOND_DOWNLOAD_DELAY_MS);
+  triggerBlobDownload(videoBlob, `${baseName}.${getVideoFileExtension(videoBlob)}`);
 }
 
-async function uploadAdminPhoto(canvas, frameId) {
+async function buildVideoPayload(videoBlob) {
+  if (!videoBlob) return { has_video: false };
+  const videoData = await blobToDataUrl(videoBlob);
+  if (videoData.length > MAX_VIDEO_DATA_CHARS) {
+    console.warn('Video terlalu besar, hanya foto yang disimpan.');
+    return { has_video: false };
+  }
+  return { video_data: videoData, has_video: true };
+}
+
+async function uploadAdminPhoto(canvas, frameId, bundle) {
   assertCanvasHasImage(canvas);
   const imageData = compressCanvasForUpload(canvas);
   const thumbData = await createThumbnailDataUrl(imageData);
+  const videoPayload = await buildVideoPayload(bundle.videoBlob);
   await apiRequest('/photos', {
     method: 'POST',
-    body: { image_data: imageData, thumb_data: thumbData, frame_id: frameId },
+    body: {
+      image_data: imageData,
+      thumb_data: thumbData,
+      frame_id: frameId,
+      filter_name: bundle.filterName,
+      ...videoPayload,
+    },
     timeoutMs: PHOTO_UPLOAD_TIMEOUT_MS,
   });
 }
 
 // Admin: simpan ke database dulu, print hanya jika simpan sukses.
-async function saveAdminPhotoThenPrint(canvas, frameId) {
+async function saveAdminPhotoThenPrint(canvas, frameId, bundle) {
   const printableDataUrl = canvasToDeviceDataUrl(canvas);
-  await uploadAdminPhoto(canvas, frameId);
+  await uploadAdminPhoto(canvas, frameId, bundle);
   showToast(SAVE_MESSAGES.admin);
   await printPhoto(printableDataUrl);
 }
 
 // Customer: download ke device saja. Tanpa API, tanpa dialog printer.
-async function saveCustomerPhotoOnly(canvas) {
-  await saveCustomerPhoto(canvas);
+async function saveCustomerBundleOnly(canvas, bundle) {
+  await saveCustomerBundle(canvas, bundle.videoBlob);
   showToast(SAVE_MESSAGES.customer);
 }
 
-async function saveAndSharePhoto(canvas, frameId) {
+async function saveAndSharePhoto(canvas, frameId, bundle = {}) {
   try {
-    if (isAdminUser()) await saveAdminPhotoThenPrint(canvas, frameId);
-    else await saveCustomerPhotoOnly(canvas);
+    if (isAdminUser()) await saveAdminPhotoThenPrint(canvas, frameId, bundle);
+    else await saveCustomerBundleOnly(canvas, bundle);
   } catch (err) {
     console.error('Simpan foto gagal:', err);
     showToast(`${err.message} Foto belum tersimpan, coba klik Simpan lagi.`);

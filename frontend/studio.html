@@ -117,7 +117,9 @@
     <div id="screen-result" class="screen">
         <div id="result-canvas-wrap" class="result-canvas-wrap">
             <canvas id="result-canvas"></canvas>
+            <video id="result-video" playsinline muted></video>
         </div>
+        <button class="btn btn-back btn-replay" id="btn-replay" onclick="playRecordedVideo()" style="display:none">Putar Ulang</button>
         <div class="result-actions">
             <button class="btn btn-back" onclick="goToScreen('screen-camera')">Back</button>
             <button class="btn btn-next" id="btn-save" onclick="saveAndPrintResult()">Simpan</button>
@@ -168,6 +170,7 @@
 <script src="js/frame-manager.js"></script>
 <script src="js/print.js"></script>
 <script src="js/image-utils.js"></script>
+<script src="js/clip-recorder.js"></script>
 <script src="js/result-share.js"></script>
 <script src="js/filters.js"></script>
 <script src="js/session-timer.js"></script>

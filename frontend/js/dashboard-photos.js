@@ -31,12 +31,25 @@ function setupPhotoPanels() {
     document.getElementById(list.moreButtonId).addEventListener('click', () => loadPhotoList(listType));
   });
   setupGalleryModal();
+  setupVideoModal();
 }
 
 // ---------- Paginated lists ----------
 
 function buildPhotoImageHtml(photo) {
   return `<img src="${photo.thumb_data}" alt="Foto ${escapeHtml(photo.username || '')}" loading="lazy" decoding="async">`;
+}
+
+function buildPhotoThumbHtml(photo) {
+  if (!photo.has_video) return buildPhotoImageHtml(photo);
+  const playButton = `<button type="button" class="play-btn" title="Putar video" aria-label="Putar video"
+    data-photo-action="play" data-photo-id="${photo.id}">${iconSvg('play')}</button>`;
+  return `<div class="photo-thumb-wrapper">${buildPhotoImageHtml(photo)}${playButton}</div>`;
+}
+
+function buildPlayActionHtml(photo) {
+  if (!photo.has_video) return '';
+  return buildPhotoActionButtonHtml(photo, 'play', 'play', 'Putar video', 'play');
 }
 
 function buildPhotoActionButtonHtml(photo, action, icon, label, variant) {
@@ -48,14 +61,15 @@ function buildPhotoActionButtonHtml(photo, action, icon, label, variant) {
 function buildResultPhotoCardHtml(photo) {
   return `
     <div class="photo-card">
-      ${buildPhotoImageHtml(photo)}
+      ${buildPhotoThumbHtml(photo)}
       <div class="pc-meta">${escapeHtml(photo.username || 'Guest')}</div>
       <div class="pc-meta">Hapus otomatis: ${formatIndonesianDate(photo.expires_at)}</div>
       <div class="photo-actions">
-        ${buildPhotoActionButtonHtml(photo, 'delete', 'trash', 'Hapus', 'danger')}
         ${buildPhotoActionButtonHtml(photo, 'save-device', 'download', 'Simpan ke Device', 'outline')}
-        ${buildPhotoActionButtonHtml(photo, 'add-gallery', 'plus', 'Tambah ke Galeri', 'primary')}
         ${buildPhotoActionButtonHtml(photo, 'print', 'print', 'Print', 'print')}
+        ${buildPlayActionHtml(photo)}
+        ${buildPhotoActionButtonHtml(photo, 'add-gallery', 'plus', 'Tambah ke Galeri', 'primary')}
+        ${buildPhotoActionButtonHtml(photo, 'delete', 'trash', 'Hapus', 'danger')}
       </div>
     </div>`;
 }
@@ -106,6 +120,7 @@ function handlePhotoGridClick(event) {
   const actions = {
     'save-device': () => saveAdminPhotoToDevice(photoId, button),
     print: () => printAdminPhoto(photoId, button),
+    play: () => playPhotoVideo(photoId, button),
     'add-gallery': () => addPhotoToGallery(photoId),
     edit: () => openGalleryModal(button.closest('.photo-card'), photoId),
     delete: () => deletePhoto(photoId),
@@ -113,14 +128,66 @@ function handlePhotoGridClick(event) {
   actions[button.dataset.photoAction]?.();
 }
 
+function getDataUrlExtension(dataUrl) {
+  return dataUrl.startsWith('data:video/mp4') ? 'mp4' : 'webm';
+}
+
+function waitMilliseconds(durationMs) {
+  return new Promise((resolve) => setTimeout(resolve, durationMs));
+}
+
+// Data URL video besar sering diblokir saat didownload, jadi diubah ke blob dulu.
+async function downloadVideoDataUrl(videoData, fileName) {
+  const videoBlob = await (await fetch(videoData)).blob();
+  const objectUrl = URL.createObjectURL(videoBlob);
+  downloadDataUrl(objectUrl, fileName);
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+}
+
+// Foto punya video: download dua file (foto lalu video). Tanpa video: satu file foto.
 async function saveAdminPhotoToDevice(photoId, button) {
   button.disabled = true;
   try {
     const { photo } = await apiRequest(`/photos?id=${photoId}`);
-    downloadDataUrl(photo.image_data, `snapmomen-${photoId}.jpg`);
-    showToast('Foto disimpan ke perangkat.');
+    const baseName = `snapmomen-${Date.now()}`;
+    downloadDataUrl(photo.image_data, `${baseName}.jpg`);
+    if (photo.has_video && photo.video_data) {
+      await waitMilliseconds(600);
+      await downloadVideoDataUrl(photo.video_data, `${baseName}.${getDataUrlExtension(photo.video_data)}`);
+    }
+    showToast(photo.has_video ? 'Foto dan video disimpan ke perangkat.' : 'Foto disimpan ke perangkat.');
   } catch (err) {
     showToast(err.message || 'Gagal mengunduh foto.');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+// ---------- Video modal ----------
+
+function setupVideoModal() {
+  document.getElementById('closeVideoBtn').addEventListener('click', closeVideoModal);
+}
+
+function closeVideoModal() {
+  const player = document.getElementById('videoPlayer');
+  player.pause();
+  player.removeAttribute('src');
+  player.load();
+  closeModal('videoModal');
+}
+
+async function playPhotoVideo(photoId, button) {
+  button.disabled = true;
+  try {
+    const { photo } = await apiRequest(`/photos?id=${photoId}`);
+    if (!photo.video_data) throw new Error('Video tidak ditemukan.');
+    const player = document.getElementById('videoPlayer');
+    player.src = photo.video_data;
+    openModal('videoModal');
+    await player.play().catch(() => {});
+  } catch (err) {
+    showToast(err.message || 'Gagal memuat video.');
   } finally {
     button.disabled = false;
   }

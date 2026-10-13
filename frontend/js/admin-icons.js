@@ -7,6 +7,7 @@ const ICON_PATHS = {
   download: '<path d="M12 4v11"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/>',
   print: '<path d="M7 9V4h10v5"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 14h10v6H7z"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  play: '<path d="M8 5v14l11-7z"/>',
 };
 
 function iconSvg(name) {
