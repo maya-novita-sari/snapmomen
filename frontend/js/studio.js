@@ -11,6 +11,7 @@ const StudioState = {
   clipPromises: [],
   bundleBlob: null,
   bundleBuildId: 0,
+  replayData: null,
 };
 
 let welcomeStream   = null;
@@ -20,7 +21,7 @@ let isCountingDown  = false;
 let countdownIntervalId = null;
 let currentFilter   = 'normal';
 let activeClip      = null;
-let replayObjectUrl = null;
+let liveReplay      = null;
 
 const THEME_CATEGORIES = ['free', 'premium', 'custom'];
 const CUSTOM_LOCKED_MESSAGE = 'Masukin token dulu buat akses bingkai custom';
@@ -422,6 +423,7 @@ function capturePhoto() {
 
   if (photoTakenCount >= config.captures) {
     document.getElementById('btn-next-frame').disabled = false;
+    ensureBundleVideoBuild();
   }
 }
 
@@ -466,6 +468,7 @@ function retakeSlot(slotIndex) {
   }
   photoTakenCount = StudioState.photoData.length;
 
+  discardBundleVideo();
   if (photoTakenCount < config.captures) {
     document.getElementById('btn-next-frame').disabled = true;
   }
@@ -526,7 +529,6 @@ async function processResult() {
   const ctx = canvas.getContext('2d');
   const saveBtn = document.getElementById('btn-save');
   saveBtn.disabled = true;
-  discardBundleVideo();
 
   canvas.width = RESULT_WIDTH;
   canvas.height = RESULT_HEIGHT;
@@ -541,7 +543,8 @@ async function processResult() {
   if (frameImage) ctx.drawImage(frameImage, 0, 0, RESULT_WIDTH, RESULT_HEIGHT);
 
   saveBtn.disabled = false;
-  startBundleVideoBuild(slots, rects, frameImage);
+  ensureBundleVideoBuild();
+  setReplayButtonVisible(Boolean(StudioState.replayData && hasPlayableClip(StudioState.replayData.layers)));
 }
 
 // ---------- Video bundle ----------
@@ -550,7 +553,9 @@ function discardBundleVideo() {
   StudioState.bundleBuildId++;
   StudioState.bundleBlob = null;
   StudioState.bundlePromise = null;
+  StudioState.bundleKey = null;
   stopReplayVideo();
+  releaseReplayData();
   byId('result-canvas').classList.remove('has-video');
   setReplayButtonVisible(false);
 }
@@ -564,11 +569,29 @@ async function buildSlotImages(slots) {
   return Promise.all(slots.map((slot) => (slot ? loadImage(slot) : null)));
 }
 
-function startBundleVideoBuild(slots, rects, frameImage) {
+function buildBundleKey() {
+  const photoKeys = StudioState.photoData.map((photo) => `${photo.length}:${photo.slice(-24)}`);
+  return `${StudioState.model}|${StudioState.frame?.id}|${photoKeys.join(',')}`;
+}
+
+// Video disusun di latar belakang begitu foto terakhir diambil, jadi sudah siap saat layar hasil dibuka.
+function ensureBundleVideoBuild() {
+  const key = buildBundleKey();
+  if (StudioState.bundleKey === key && StudioState.bundlePromise) return;
+  StudioState.bundleKey = key;
+  startBundleVideoBuild();
+  prepareLiveReplay();
+}
+
+function startBundleVideoBuild() {
   const buildId = ++StudioState.bundleBuildId;
+  StudioState.bundleBlob = null;
   StudioState.bundlePromise = (async () => {
-    const clipBlobs = await collectSlotClips();
-    const slotImages = await buildSlotImages(slots);
+    const slots = StudioState.model === 'left' ? duplicateForLeftModel(StudioState.photoData) : StudioState.photoData;
+    const rects = computeSlotRects(RESULT_WIDTH, RESULT_HEIGHT);
+    const [clipBlobs, slotImages, frameImage] = await Promise.all([
+      collectSlotClips(), buildSlotImages(slots), loadFrameImageOrNull(),
+    ]);
     const videoBlob = await buildBundleVideo({
       clipBlobs, slotImages, rects, frameImage, width: RESULT_WIDTH, height: RESULT_HEIGHT,
     });
@@ -594,30 +617,53 @@ function setReplayButtonVisible(isVisible) {
 
 function setupReplayOnTap() {
   byId('result-canvas').addEventListener('click', playRecordedVideo);
+  byId('result-video').addEventListener('click', stopReplayVideo);
+}
+
+function releaseReplayData() {
+  StudioState.replayData?.release();
+  StudioState.replayData = null;
+}
+
+// Menyiapkan klip untuk putar ulang langsung, jadi tombol putar ulang tidak perlu menunggu video bundle.
+async function prepareLiveReplay() {
+  const buildKey = StudioState.bundleKey;
+  const slots = StudioState.model === 'left' ? duplicateForLeftModel(StudioState.photoData) : StudioState.photoData;
+  const [clipBlobs, slotImages, frameImage] = await Promise.all([
+    collectSlotClips(), buildSlotImages(slots), loadFrameImageOrNull(),
+  ]);
+  const { layers, release } = await loadReplayLayers(clipBlobs, slotImages);
+  if (buildKey !== StudioState.bundleKey) {
+    release();
+    return;
+  }
+  releaseReplayData();
+  const rects = computeSlotRects(RESULT_WIDTH, RESULT_HEIGHT);
+  StudioState.replayData = { layers, rects, frameImage, release };
+  const canReplay = hasPlayableClip(layers);
+  byId('result-canvas').classList.toggle('has-video', canReplay);
+  setReplayButtonVisible(canReplay);
 }
 
 function stopReplayVideo() {
-  const video = byId('result-video');
-  if (!video) return;
-  video.pause();
-  video.classList.remove('playing');
-  setReplayButtonVisible(Boolean(StudioState.bundleBlob));
-  video.removeAttribute('src');
-  if (replayObjectUrl) URL.revokeObjectURL(replayObjectUrl);
-  replayObjectUrl = null;
+  liveReplay?.stop();
+  liveReplay = null;
+  byId('result-video')?.classList.remove('playing');
 }
 
 function playRecordedVideo() {
-  if (!StudioState.bundleBlob) return;
-  const video = byId('result-video');
+  const replayData = StudioState.replayData;
+  if (!replayData) return;
   stopReplayVideo();
-  replayObjectUrl = URL.createObjectURL(StudioState.bundleBlob);
-  video.src = replayObjectUrl;
-  video.onended = stopReplayVideo;
-  video.onclick = stopReplayVideo;
-  video.classList.add('playing');
-  setReplayButtonVisible(false);
-  video.play().catch(stopReplayVideo);
+  const replayCanvas = byId('result-video');
+  replayCanvas.classList.add('playing');
+  liveReplay = startLiveReplay({
+    canvas: replayCanvas,
+    layers: replayData.layers,
+    rects: replayData.rects,
+    frameImage: replayData.frameImage,
+    onEnd: stopReplayVideo,
+  });
 }
 
 function duplicateForLeftModel(photos) {

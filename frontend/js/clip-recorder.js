@@ -1,5 +1,3 @@
-// Merekam video 3 detik saat countdown, lalu menyusun satu video bundle (bingkai + filter).
-// Jika browser tidak mendukung perekaman, semua fungsi mengembalikan null dan foto tetap jalan.
 
 const CLIP_FPS = 24;
 const CLIP_BITS_PER_SECOND = 1200000;
@@ -76,7 +74,6 @@ function drawMirroredFilteredVideo(ctx, video, filterCss, width, height) {
   ctx.restore();
 }
 
-// Mulai merekam klip dari kamera (sudah mirror + filter). Mengembalikan { stop } atau null.
 function startCountdownClip(video, getFilterCss) {
   if (!getSupportedVideoMimeType()) return null;
   try {
@@ -171,4 +168,40 @@ async function buildBundleVideo({ clipBlobs, slotImages, rects, frameImage, widt
   } finally {
     releaseClipVideos(loadedClips);
   }
+}
+
+
+
+async function loadReplayLayers(clipBlobs, slotImages) {
+  const loadedClips = await Promise.all(clipBlobs.map((blob) => (blob ? loadClipVideo(blob) : { video: null, objectUrl: '' })));
+  return {
+    layers: loadedClips.map(({ video }, index) => ({ video, image: slotImages[index] })),
+    release: () => releaseClipVideos(loadedClips),
+  };
+}
+
+function hasPlayableClip(layers) {
+  return layers.some((layer) => layer.video);
+}
+
+// Menggambar klip ke canvas tampilan. Mengembalikan { stop }.
+function startLiveReplay({ canvas, layers, rects, frameImage, onEnd }) {
+  const ctx = canvas.getContext('2d');
+  const render = () => drawBundleFrame(ctx, layers, rects, frameImage, canvas.width, canvas.height);
+  layers.forEach(({ video }) => {
+    if (!video) return;
+    video.currentTime = 0;
+    video.play().catch(() => {});
+  });
+  render();
+
+  const timerId = setInterval(render, 1000 / CLIP_FPS);
+  const endId = setTimeout(() => { stopPlayback(); onEnd(); }, BUNDLE_DURATION_MS);
+
+  function stopPlayback() {
+    clearInterval(timerId);
+    clearTimeout(endId);
+    layers.forEach(({ video }) => video?.pause());
+  }
+  return { stop: stopPlayback };
 }
