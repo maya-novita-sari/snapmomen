@@ -552,6 +552,7 @@ function discardBundleVideo() {
   StudioState.bundlePromise = null;
   stopReplayVideo();
   byId('result-canvas').classList.remove('has-video');
+  setReplayButtonVisible(false);
 }
 
 async function collectSlotClips() {
@@ -574,6 +575,7 @@ function startBundleVideoBuild(slots, rects, frameImage) {
     if (buildId !== StudioState.bundleBuildId) return null;
     StudioState.bundleBlob = videoBlob;
     byId('result-canvas').classList.toggle('has-video', Boolean(videoBlob));
+    setReplayButtonVisible(Boolean(videoBlob));
     return videoBlob;
   })().catch((err) => {
     console.warn('Video bundle gagal dibuat:', err);
@@ -585,6 +587,11 @@ async function getBundleVideoBlob() {
   return StudioState.bundlePromise ? StudioState.bundlePromise : null;
 }
 
+function setReplayButtonVisible(isVisible) {
+  const replayButton = byId('btn-replay');
+  if (replayButton) replayButton.style.display = isVisible ? 'flex' : 'none';
+}
+
 function setupReplayOnTap() {
   byId('result-canvas').addEventListener('click', playRecordedVideo);
 }
@@ -594,6 +601,7 @@ function stopReplayVideo() {
   if (!video) return;
   video.pause();
   video.classList.remove('playing');
+  setReplayButtonVisible(Boolean(StudioState.bundleBlob));
   video.removeAttribute('src');
   if (replayObjectUrl) URL.revokeObjectURL(replayObjectUrl);
   replayObjectUrl = null;
@@ -608,6 +616,7 @@ function playRecordedVideo() {
   video.onended = stopReplayVideo;
   video.onclick = stopReplayVideo;
   video.classList.add('playing');
+  setReplayButtonVisible(false);
   video.play().catch(stopReplayVideo);
 }
 
