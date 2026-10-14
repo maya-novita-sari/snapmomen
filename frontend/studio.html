@@ -122,6 +122,11 @@
             </div>
             <div class="result-side">
                 <p class="result-thanks">Snapmomen Thankyou!</p>
+                <form class="result-email" id="email-form" novalidate>
+                    <input type="email" id="email-input" placeholder="example@gmail.com" autocomplete="email" aria-label="Alamat email">
+                    <button type="submit" class="btn-send" id="btn-send-email">Send</button>
+                </form>
+                <p class="email-hint">Foto dan video akan dikirim otomatis ke email kamu</p>
                 <div class="result-view-toggle">
                     <button type="button" class="btn-view active" id="btn-view-photo" onclick="showResultPhoto()">Foto</button>
                     <button type="button" class="btn-view" id="btn-view-live" onclick="showResultLive()" disabled>Live Foto</button>
@@ -191,6 +196,7 @@
 <script src="js/image-utils.js"></script>
 <script src="js/clip-recorder.js"></script>
 <script src="js/result-share.js"></script>
+<script src="js/email-share.js"></script>
 <script src="js/filters.js"></script>
 <script src="js/session-timer.js"></script>
 <script src="js/studio.js"></script>

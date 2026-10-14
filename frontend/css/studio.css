@@ -808,6 +808,50 @@ html, body {
 .btn-view.active { background:#5FD3C4; color:#12332E; }
 .btn-view:disabled { opacity:0.4; cursor:not-allowed; }
 
+.result-email {
+    display:flex;
+    gap:8px;
+    width:100%;
+    max-width:380px;
+}
+
+.result-email input {
+    flex:1;
+    min-width:0;
+    padding:12px 18px;
+    border:3px solid #5D4037;
+    border-radius:50px;
+    background:#fff;
+    color:#3E2723;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+    font-size:1rem;
+    outline:none;
+}
+
+.result-email input:focus { border-color:#5FD3C4; }
+
+.btn-send {
+    padding:12px 24px;
+    border:none;
+    border-radius:50px;
+    background:#5FD3C4;
+    color:#12332E;
+    box-shadow:0 4px 0 #3DA396;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+    font-size:1rem;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.btn-send:disabled { opacity:0.5; cursor:not-allowed; }
+
+.email-hint {
+    margin:-12px 0 0;
+    font-size:0.85rem;
+    color:#5D4037;
+    opacity:0.8;
+}
+
 @media (max-width:950px) {
     .result-layout { flex-direction:column; gap:20px; }
     .result-thanks { font-size:2rem; -webkit-text-stroke:1px #3E2723; }

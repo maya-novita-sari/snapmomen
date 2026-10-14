@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupThemeEvents();
   setupTokenModal();
   setupNextConfirmModal();
+  setupEmailForm();
   setupFilterEvents();
   startWelcomeCamera();
   await loadStudioData();
@@ -622,6 +623,35 @@ function startBundleVideoBuild() {
 
 async function getBundleVideoBlob() {
   return StudioState.bundlePromise ? StudioState.bundlePromise : null;
+}
+
+function setupEmailForm() {
+  byId('email-form').addEventListener('submit', (event) => {
+    event.preventDefault();
+    submitResultEmail();
+  });
+}
+
+async function submitResultEmail() {
+  const email = byId('email-input').value.trim();
+  if (!isValidEmailAddress(email)) {
+    showToast('Masukkan alamat email yang valid, contoh: example@gmail.com');
+    return;
+  }
+
+  const sendButton = byId('btn-send-email');
+  sendButton.disabled = true;
+  sendButton.textContent = 'Mengirim...';
+  try {
+    const videoBlob = await getBundleVideoBlob();
+    await sendResultByEmail(byId('result-canvas'), videoBlob, email);
+    showToast(`Foto dan video terkirim ke ${email}`);
+  } catch (err) {
+    showToast(err.message || 'Gagal mengirim email.');
+  } finally {
+    sendButton.disabled = false;
+    sendButton.textContent = 'Send';
+  }
 }
 
 function setLiveToggleEnabled(isEnabled) {

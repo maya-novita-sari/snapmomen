@@ -136,26 +136,33 @@ function waitMilliseconds(durationMs) {
   return new Promise((resolve) => setTimeout(resolve, durationMs));
 }
 
-// Data URL video besar sering diblokir saat didownload, jadi diubah ke blob dulu.
-async function downloadVideoDataUrl(videoData, fileName) {
-  const videoBlob = await (await fetch(videoData)).blob();
-  const objectUrl = URL.createObjectURL(videoBlob);
+async function dataUrlToObjectUrl(dataUrl) {
+  const blob = await (await fetch(dataUrl)).blob();
+  return URL.createObjectURL(blob);
+}
+
+function downloadObjectUrl(objectUrl, fileName) {
   downloadDataUrl(objectUrl, fileName);
   setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
 }
 
 // Foto punya video: download dua file (foto lalu video). Tanpa video: satu file foto.
+// Semua data disiapkan dulu supaya dua download terjadi berurutan dalam satu klik.
 async function saveAdminPhotoToDevice(photoId, button) {
   button.disabled = true;
   try {
     const { photo } = await apiRequest(`/photos?id=${photoId}`);
+    const hasVideo = Boolean(photo.has_video && photo.video_data);
+    const photoUrl = await dataUrlToObjectUrl(photo.image_data);
+    const videoUrl = hasVideo ? await dataUrlToObjectUrl(photo.video_data) : null;
     const baseName = `snapmomen-${Date.now()}`;
-    downloadDataUrl(photo.image_data, `${baseName}.jpg`);
-    if (photo.has_video && photo.video_data) {
-      await waitMilliseconds(600);
-      await downloadVideoDataUrl(photo.video_data, `${baseName}.${getDataUrlExtension(photo.video_data)}`);
+
+    downloadObjectUrl(photoUrl, `${baseName}.jpg`);
+    if (videoUrl) {
+      await waitMilliseconds(150);
+      downloadObjectUrl(videoUrl, `${baseName}.${getDataUrlExtension(photo.video_data)}`);
     }
-    showToast(photo.has_video ? 'Foto dan video disimpan ke perangkat.' : 'Foto disimpan ke perangkat.');
+    showToast(hasVideo ? 'Foto dan video disimpan ke perangkat.' : 'Foto disimpan ke perangkat. Foto ini tidak punya video.');
   } catch (err) {
     showToast(err.message || 'Gagal mengunduh foto.');
   } finally {
