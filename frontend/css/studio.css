@@ -758,19 +758,55 @@ html, body {
 
 #result-video.playing { display:block; }
 
-#result-canvas.has-video { cursor:pointer; }
-
-.btn-replay {
-    display:inline-flex; align-items:center; justify-content:center;
-    padding:14px 22px;
-    border:none;
-    border-radius:50px;
-    background:#B0B0B0;
-    box-shadow:0 5px 0 #8A8A8A;
-    cursor:pointer;
-    transition:transform 0.15s ease, box-shadow 0.15s ease;
+.result-layout {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:48px;
 }
 
-.btn-replay svg { width:24px; height:24px; fill:#fff; }
-.btn-replay:hover { transform:translateY(-2px); }
-.btn-replay:active { transform:translateY(3px); box-shadow:0 2px 0 #8A8A8A; }
+.result-side {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:22px;
+    max-width:340px;
+    text-align:center;
+}
+
+.result-thanks {
+    margin:0;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+    font-size:1.35rem;
+    font-weight:800;
+    line-height:1.4;
+    color:#5D4037;
+}
+
+.result-view-toggle {
+    display:flex;
+    gap:6px;
+    padding:5px;
+    border-radius:50px;
+    background:rgba(255,255,255,0.75);
+}
+
+.btn-view {
+    padding:10px 24px;
+    border:none;
+    border-radius:50px;
+    background:transparent;
+    color:#5D4037;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+    font-size:0.95rem;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.btn-view.active { background:#5FD3C4; color:#12332E; }
+.btn-view:disabled { opacity:0.4; cursor:not-allowed; }
+
+@media (max-width:950px) {
+    .result-layout { flex-direction:column; gap:20px; }
+    .result-thanks { font-size:1.1rem; }
+}

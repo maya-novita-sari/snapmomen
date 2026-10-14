@@ -54,7 +54,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupTokenModal();
   setupNextConfirmModal();
   setupFilterEvents();
-  setupReplayOnTap();
   startWelcomeCamera();
   await loadStudioData();
 });
@@ -562,7 +561,7 @@ async function processResult() {
 
   saveBtn.disabled = false;
   ensureBundleVideoBuild();
-  setReplayButtonVisible(Boolean(StudioState.replayData && hasPlayableClip(StudioState.replayData.layers)));
+  setLiveToggleEnabled(Boolean(StudioState.replayData && hasPlayableClip(StudioState.replayData.layers)));
 }
 
 // ---------- Video bundle ----------
@@ -574,8 +573,7 @@ function discardBundleVideo() {
   StudioState.bundleKey = null;
   stopReplayVideo();
   releaseReplayData();
-  byId('result-canvas').classList.remove('has-video');
-  setReplayButtonVisible(false);
+  setLiveToggleEnabled(false);
 }
 
 async function collectSlotClips() {
@@ -615,8 +613,6 @@ function startBundleVideoBuild() {
     });
     if (buildId !== StudioState.bundleBuildId) return null;
     StudioState.bundleBlob = videoBlob;
-    byId('result-canvas').classList.toggle('has-video', Boolean(videoBlob));
-    setReplayButtonVisible(Boolean(videoBlob));
     return videoBlob;
   })().catch((err) => {
     console.warn('Video bundle gagal dibuat:', err);
@@ -628,14 +624,14 @@ async function getBundleVideoBlob() {
   return StudioState.bundlePromise ? StudioState.bundlePromise : null;
 }
 
-function setReplayButtonVisible(isVisible) {
-  const replayButton = byId('btn-replay');
-  if (replayButton) replayButton.style.display = isVisible ? 'inline-flex' : 'none';
+function setLiveToggleEnabled(isEnabled) {
+  const liveButton = byId('btn-view-live');
+  if (liveButton) liveButton.disabled = !isEnabled;
 }
 
-function setupReplayOnTap() {
-  byId('result-canvas').addEventListener('click', playRecordedVideo);
-  byId('result-video').addEventListener('click', stopReplayVideo);
+function markActiveResultView(isLive) {
+  byId('btn-view-photo').classList.toggle('active', !isLive);
+  byId('btn-view-live').classList.toggle('active', isLive);
 }
 
 function releaseReplayData() {
@@ -659,28 +655,34 @@ async function prepareLiveReplay() {
   const rects = computeSlotRects(RESULT_WIDTH, RESULT_HEIGHT);
   StudioState.replayData = { layers, rects, frameImage, release };
   const canReplay = hasPlayableClip(layers);
-  byId('result-canvas').classList.toggle('has-video', canReplay);
-  setReplayButtonVisible(canReplay);
+  setLiveToggleEnabled(canReplay);
 }
 
 function stopReplayVideo() {
   liveReplay?.stop();
   liveReplay = null;
   byId('result-video')?.classList.remove('playing');
+  markActiveResultView(false);
 }
 
-function playRecordedVideo() {
+function showResultPhoto() {
+  stopReplayVideo();
+}
+
+// Live Foto: klip diputar berulang terus tanpa perlu diklik lagi.
+function showResultLive() {
   const replayData = StudioState.replayData;
   if (!replayData) return;
   stopReplayVideo();
   const replayCanvas = byId('result-video');
   replayCanvas.classList.add('playing');
+  markActiveResultView(true);
   liveReplay = startLiveReplay({
     canvas: replayCanvas,
     layers: replayData.layers,
     rects: replayData.rects,
     frameImage: replayData.frameImage,
-    onEnd: stopReplayVideo,
+    loop: true,
   });
 }
 
@@ -743,7 +745,7 @@ function drawImageCover(ctx, img, x, y, w, h) {
 async function saveAndPrintResult() {
   const saveBtn = byId('btn-save');
   saveBtn.disabled = true;
-  saveBtn.textContent = 'Menyimpan...';
+  saveBtn.textContent = 'Memproses...';
 
   try {
     const videoBlob = await getBundleVideoBlob();
@@ -751,7 +753,7 @@ async function saveAndPrintResult() {
     if (isSaved) byId('btn-finish').disabled = false;
   } finally {
     saveBtn.disabled = false;
-    saveBtn.textContent = 'Simpan';
+    saveBtn.textContent = 'Print';
   }
 }
 
