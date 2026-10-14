@@ -26,7 +26,9 @@ export default async function handler(req, res) {
 
   try {
     const transporter = nodemailer.createTransport({ service: 'gmail', auth: credentials });
-    await transporter.sendMail(buildMailMessage(credentials.user, input));
+    const info = await transporter.sendMail(buildMailMessage(credentials.user, input));
+    console.log('send-email result:', { accepted: info.accepted, rejected: info.rejected, response: info.response });
+    if (!info.accepted?.length) return sendError(res, 502, 'Email ditolak oleh server pengirim. Cek alamat email tujuan.');
     return sendOk(res);
   } catch (err) {
     console.error('send-email error:', err);
