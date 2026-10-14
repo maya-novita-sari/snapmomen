@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupTokenModal();
   setupNextConfirmModal();
   setupEmailForm();
+  setupEmailSentModal();
   setupFilterEvents();
   startWelcomeCamera();
   await loadStudioData();
@@ -643,6 +644,17 @@ function applyResultRoleLayout() {
   byId('btn-save').textContent = getSaveButtonLabel();
 }
 
+function showEmailSentModal(email) {
+  byId('email-sent-address').textContent = email;
+  byId('email-sent-modal').classList.add('open');
+}
+
+function setupEmailSentModal() {
+  byId('btn-email-sent-ok').addEventListener('click', () => {
+    byId('email-sent-modal').classList.remove('open');
+  });
+}
+
 function clearEmailInput() {
   const emailInput = byId('email-input');
   if (emailInput) emailInput.value = '';
@@ -661,7 +673,7 @@ async function submitResultEmail() {
   try {
     const videoBlob = await getBundleVideoBlob();
     await sendResultByEmail(byId('result-canvas'), videoBlob, email);
-    showToast(`Foto dan video terkirim ke ${email}`);
+    showEmailSentModal(email);
     clearEmailInput();
   } catch (err) {
     showToast(err.message || 'Gagal mengirim email.');
