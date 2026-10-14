@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { requireAuth } from './_lib/auth-middleware.js';
+import { requireAdmin } from './_lib/auth-middleware.js';
 import { handlePreflight, sendOk, sendError } from './_lib/response.js';
 
 export const config = { api: { bodyParser: { sizeLimit: '4mb' } } };
@@ -15,7 +15,7 @@ const VIDEO_MIME_TYPES     = ['video/webm', 'video/mp4'];
 export default async function handler(req, res) {
   if (handlePreflight(req, res)) return;
   if (req.method !== 'POST') return sendError(res, 405, 'Method tidak diizinkan.');
-  if (!requireAuth(req, res)) return;
+  if (!requireAdmin(req, res)) return;
 
   const { email, image_data, video_data } = req.body || {};
   const input = validateInput(email, image_data, video_data);

@@ -808,8 +808,13 @@ html, body {
 .btn-view.active { background:#5FD3C4; color:#12332E; }
 .btn-view:disabled { opacity:0.4; cursor:not-allowed; }
 
+.result-email,
+.email-hint { display:none; }
+
+.result-layout.is-admin .result-email { display:flex; }
+.result-layout.is-admin .email-hint { display:block; }
+
 .result-email {
-    display:flex;
     gap:8px;
     width:100%;
     max-width:380px;

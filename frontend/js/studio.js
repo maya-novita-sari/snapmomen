@@ -547,6 +547,7 @@ async function processResult() {
   const saveBtn = document.getElementById('btn-save');
   saveBtn.disabled = true;
   byId('btn-finish').disabled = true;
+  applyResultRoleLayout();
 
   canvas.width = RESULT_WIDTH;
   canvas.height = RESULT_HEIGHT;
@@ -632,6 +633,21 @@ function setupEmailForm() {
   });
 }
 
+// Admin: Print + kirim email. Customer: Simpan ke perangkat saja (tanpa email, hemat kuota kirim).
+function getSaveButtonLabel() {
+  return isAdminUser() ? 'Print' : 'Simpan';
+}
+
+function applyResultRoleLayout() {
+  byId('result-layout').classList.toggle('is-admin', isAdminUser());
+  byId('btn-save').textContent = getSaveButtonLabel();
+}
+
+function clearEmailInput() {
+  const emailInput = byId('email-input');
+  if (emailInput) emailInput.value = '';
+}
+
 async function submitResultEmail() {
   const email = byId('email-input').value.trim();
   if (!isValidEmailAddress(email)) {
@@ -646,6 +662,7 @@ async function submitResultEmail() {
     const videoBlob = await getBundleVideoBlob();
     await sendResultByEmail(byId('result-canvas'), videoBlob, email);
     showToast(`Foto dan video terkirim ke ${email}`);
+    clearEmailInput();
   } catch (err) {
     showToast(err.message || 'Gagal mengirim email.');
   } finally {
@@ -783,7 +800,7 @@ async function saveAndPrintResult() {
     if (isSaved) byId('btn-finish').disabled = false;
   } finally {
     saveBtn.disabled = false;
-    saveBtn.textContent = 'Print';
+    saveBtn.textContent = getSaveButtonLabel();
   }
 }
 
@@ -821,6 +838,7 @@ function resetStudioState() {
   StudioState.photoData = [];
   StudioState.clipPromises = [];
   StudioState.livePreviewSlots = [];
+  clearEmailInput();
   discardBundleVideo();
   photoTakenCount = 0;
   setFilter('normal');
@@ -830,6 +848,7 @@ function resetApp() {
   clearSessionTimer();
   StudioState.photoData = [];
   StudioState.clipPromises = [];
+  clearEmailInput();
   discardBundleVideo();
   photoTakenCount = 0;
   goToScreen('screen-welcome');
