@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   cacheDomElements();
   setupThemeEvents();
   setupTokenModal();
+  setupNextConfirmModal();
   setupFilterEvents();
   setupReplayOnTap();
   startWelcomeCamera();
@@ -211,6 +212,22 @@ function setupTokenModal() {
   dom.tokenSubmitButton.addEventListener('click', submitToken);
   dom.tokenInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') submitToken();
+  });
+}
+
+function openNextConfirmModal() {
+  byId('next-confirm-modal').classList.add('open');
+}
+
+function closeNextConfirmModal() {
+  byId('next-confirm-modal').classList.remove('open');
+}
+
+function setupNextConfirmModal() {
+  byId('btn-next-cancel').addEventListener('click', closeNextConfirmModal);
+  byId('btn-next-confirm').addEventListener('click', () => {
+    closeNextConfirmModal();
+    goToScreen('screen-result');
   });
 }
 
