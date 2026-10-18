@@ -83,8 +83,6 @@ const STAT_ELEMENTS = {
   statPremium: 'premium_users',
   statFree: 'free_users',
   statFrames: 'total_frames',
-  statActiveCodes: 'active_codes',
-  statUsedCodes: 'used_codes',
   statActiveCodes2: 'active_codes',
   statUsedCodes2: 'used_codes',
 };
