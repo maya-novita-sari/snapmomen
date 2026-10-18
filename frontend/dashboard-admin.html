@@ -21,7 +21,6 @@
     <button class="side-link" data-panel="panelUsers">User</button>
     <button class="side-link" data-panel="panelPhotos">Foto</button>
     <button class="side-link" data-panel="panelGallery">Galeri</button>
-    <button class="side-link" data-panel="panelPrinter">Printer</button>
     <div style="margin-top:auto;padding-top:20px">
       <button class="btn btn-primary" style="width:100%;margin-bottom:8px" id="goStudioBtn">Masuk Studio</button>
       <button class="btn btn-outline" style="width:100%" id="logoutBtnAdmin">Keluar</button>
@@ -39,6 +38,12 @@
         <div class="stat-card"><svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/></svg><div class="num" id="statFree">0</div><div class="lbl">Free</div></div>
         <div class="stat-card"><svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><rect x="7.5" y="7.5" width="9" height="9" rx="1"/></svg><div class="num" id="statFrames">0</div><div class="lbl">Bingkai</div></div>
       </div>
+      <div class="settings-card">
+        <p id="printerStatus">Belum terhubung</p>
+        <button class="btn btn-outline" id="connectPrinterBtn" style="margin-bottom:10px">Hubungkan Printer (WebUSB)</button>
+        <br>
+        <button class="btn btn-primary" id="testPrintBtn">Test Print</button>
+      </div>
     </section>
 
     <section class="admin-panel" id="panelFrames">
@@ -49,9 +54,9 @@
 
     <section class="admin-panel" id="panelCodes">
       <h2>Kode Premium</h2>
-      <div class="stat-grid">
-        <div class="stat-card"><div class="num" id="statActiveCodes2">-</div><div class="lbl">Active</div></div>
-        <div class="stat-card"><div class="num" id="statUsedCodes2">-</div><div class="lbl">Used</div></div>
+      <div class="stat-grid stat-grid-centered">
+        <div class="stat-card"><svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9a2 2 0 0 0 0 6v3h18v-3a2 2 0 0 1 0-6V6H3z"/><path d="M13 6v12" stroke-dasharray="2 2.5"/></svg><div class="num" id="statActiveCodes2">-</div><div class="lbl">Active</div></div>
+        <div class="stat-card"><svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg><div class="num" id="statUsedCodes2">-</div><div class="lbl">Used</div></div>
       </div>
       <button class="btn btn-primary" id="generateCodeBtn" style="margin-bottom:20px">+ Generate Kode</button>
       <table>
@@ -70,10 +75,10 @@
 
     <section class="admin-panel" id="panelUsers">
       <h2>User</h2>
-      <div class="stat-grid">
-        <div class="stat-card"><div class="num" id="userStatTotal">0</div><div class="lbl">Total</div></div>
-        <div class="stat-card"><div class="num" id="userStatPremium">0</div><div class="lbl">Premium</div></div>
-        <div class="stat-card"><div class="num" id="userStatFree">0</div><div class="lbl">Free</div></div>
+      <div class="stat-grid stat-grid-centered">
+        <div class="stat-card"><svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 5a3.5 3.5 0 0 1 0 7"/><path d="M18 14.5c2 .7 3.5 2.6 3.5 5.5"/></svg><div class="num" id="userStatTotal">0</div><div class="lbl">Total</div></div>
+        <div class="stat-card"><svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg><div class="num" id="userStatPremium">0</div><div class="lbl">Premium</div></div>
+        <div class="stat-card"><svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/></svg><div class="num" id="userStatFree">0</div><div class="lbl">Free</div></div>
       </div>
       <div class="filter-row">
         <button class="active" data-user-filter="all">Semua</button>
@@ -99,16 +104,6 @@
       <button class="btn btn-primary" id="addGalleryBtn" style="margin-bottom:20px">+ Tambah Foto Galeri</button>
       <div class="photos-grid" id="galleryAdminGrid"></div>
       <div class="list-more"><button class="btn btn-outline" id="galleryAdminMoreBtn" style="display:none">Muat Lebih Banyak</button></div>
-    </section>
-
-    <section class="admin-panel" id="panelPrinter">
-      <h2>Printer</h2>
-      <div class="settings-card">
-        <p id="printerStatus">Belum terhubung</p>
-        <button class="btn btn-outline" id="connectPrinterBtn" style="margin-bottom:10px">Hubungkan Printer (WebUSB)</button>
-        <br>
-        <button class="btn btn-primary" id="testPrintBtn">Test Print</button>
-      </div>
     </section>
   </main>
 </div>
