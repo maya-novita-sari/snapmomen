@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupTokenModal();
   setupCodeModal();
   setupPrinterPanel();
+  setupPricePanel();
   setupUserFilter();
   setupPhotoPanels();
 
@@ -577,4 +578,43 @@ async function handleTestPrint() {
     '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="100%" height="100%" fill="#FDF6E3"/><text x="20" y="100" font-size="20">Snapmomen Test Print</text></svg>',
   );
   await printPhoto(testImage);
+}
+
+// ---------- Panel: Pengaturan (harga) ----------
+
+const PRICE_SAVE_LABEL = 'Simpan Pengaturan';
+const PRICE_SAVING_LABEL = 'Menyimpan...';
+
+function setupPricePanel() {
+  document.getElementById('priceForm').addEventListener('submit', handleSavePrices);
+  loadPriceSettings();
+}
+
+async function loadPriceSettings() {
+  try {
+    const { settings } = await apiRequest('/settings', { auth: false });
+    document.getElementById('sessionPriceInput').value = settings.harga_sesi;
+    document.getElementById('extraPrintPriceInput').value = settings.harga_tambah_cetak;
+  } catch (err) {
+    showToast(err.message || 'Gagal memuat pengaturan harga.');
+  }
+}
+
+async function handleSavePrices(event) {
+  event.preventDefault();
+  setButtonState('savePricesBtn', PRICE_SAVING_LABEL, true);
+  try {
+    await apiRequest('/settings', {
+      method: 'POST',
+      body: {
+        harga_sesi: document.getElementById('sessionPriceInput').value,
+        harga_tambah_cetak: document.getElementById('extraPrintPriceInput').value,
+      },
+    });
+    showToast('Pengaturan harga disimpan.');
+  } catch (err) {
+    showToast(err.message || 'Gagal menyimpan pengaturan harga.');
+  } finally {
+    setButtonState('savePricesBtn', PRICE_SAVE_LABEL, false);
+  }
 }

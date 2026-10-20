@@ -55,6 +55,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupNextConfirmModal();
   setupEmailForm();
   setupEmailSentModal();
+  setupPrintCountControls();
+  setupPaymentScreen();
   setupFilterEvents();
   startWelcomeCamera();
   await loadStudioData();
@@ -72,11 +74,25 @@ function goToScreen(screenId) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
 
+  if (screenId === 'screen-count') preparePrintCountScreen();
+  if (screenId === 'screen-payment') preparePaymentScreen();
+  if (screenId !== 'screen-payment') stopPaymentPolling();
   if (screenId === 'screen-theme') showThemeScreen();
   if (screenId !== 'screen-result') stopReplayVideo();
   if (screenId === 'screen-result') processResult();
   if (screenId === 'screen-camera') startFilterPreview();
   else stopFilterPreview();
+}
+
+// Admin melewati halaman jumlah cetak dan pembayaran, customer langsung ke pilih tema.
+// Kalau sesi ini sudah dibayar, halaman jumlah cetak dan pembayaran dilewati supaya tidak bayar dua kali.
+function goAfterModelSelection() {
+  const needsPayment = isAdminUser() && !hasPaidSession();
+  goToScreen(needsPayment ? 'screen-count' : 'screen-theme');
+}
+
+function goBackFromTheme() {
+  goToScreen('screen-frame');
 }
 
 function startApp() {
@@ -565,6 +581,17 @@ async function processResult() {
   saveBtn.disabled = false;
   ensureBundleVideoBuild();
   setLiveToggleEnabled(Boolean(StudioState.replayData && hasPlayableClip(StudioState.replayData.layers)));
+  autoPrintResultOnce();
+}
+
+// Admin: hasil langsung dicetak sesuai jumlah yang dibayar, hanya sekali per sesi.
+// Tombol Print tetap ada kalau cetak otomatis gagal.
+let hasAutoPrinted = false;
+
+function autoPrintResultOnce() {
+  if (!isAdminUser() || hasAutoPrinted) return;
+  hasAutoPrinted = true;
+  saveAndPrintResult();
 }
 
 // ---------- Video bundle ----------
@@ -837,6 +864,9 @@ function resetFrameSelection() {
   activeThemeCategory = 'free';
   document.querySelectorAll('.frame-option').forEach((option) => option.classList.remove('selected'));
   byId('btn-next-frame-model').disabled = true;
+  resetPrintCopies();
+  resetPaymentOrder();
+  hasAutoPrinted = false;
   dom.nextThemeButton.disabled = true;
   dom.themePreview.style.backgroundImage = '';
   dom.liveFrameOverlay.removeAttribute('src');
@@ -858,6 +888,9 @@ function resetStudioState() {
 
 function resetApp() {
   clearSessionTimer();
+  resetPrintCopies();
+  resetPaymentOrder();
+  hasAutoPrinted = false;
   StudioState.photoData = [];
   StudioState.clipPromises = [];
   clearEmailInput();

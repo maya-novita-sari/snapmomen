@@ -88,3 +88,36 @@ UPDATE photos SET is_galeri = TRUE, is_permanent = TRUE WHERE featured = TRUE AN
 ALTER TABLE photos ADD COLUMN IF NOT EXISTS video_data TEXT;
 ALTER TABLE photos ADD COLUMN IF NOT EXISTS has_video BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE photos ADD COLUMN IF NOT EXISTS filter_name VARCHAR(50);
+
+--pengaturan harga dan QRIS
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+INSERT INTO settings (key, value) VALUES ('harga_sesi', '40000') ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('harga_tambah_cetak', '20000') ON CONFLICT (key) DO NOTHING;
+
+--transaksi pembayaran QRIS dinamis
+CREATE TABLE IF NOT EXISTS payments (
+  id SERIAL PRIMARY KEY,
+  order_id TEXT UNIQUE NOT NULL,
+  client_ref TEXT,
+  amount INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  qr_string TEXT,
+  qr_url TEXT,
+  transaction_id TEXT,
+  paid_at TIMESTAMPTZ,
+  consumed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS client_ref TEXT;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS consumed_at TIMESTAMPTZ;
+
+--satu sesi studio hanya boleh punya satu order pending
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_pending_client_ref
+  ON payments (client_ref) WHERE status = 'pending' AND client_ref IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_payments_status ON payments (status);

@@ -41,7 +41,46 @@
                 <img src="assets/frames/Frame2.png" alt="Model Kanan (6 jepretan)" class="frame-img">
             </div>
         </div>
-        <button class="btn btn-next" id="btn-next-frame-model" onclick="goToScreen('screen-theme')" disabled>Next</button>
+        <button class="btn btn-next" id="btn-next-frame-model" onclick="goAfterModelSelection()" disabled>Next</button>
+    </div>
+
+    <div id="screen-count" class="screen">
+        <h2 class="step-title">Apakah anda ingin menambah hasil cetak?</h2>
+        <div class="step-card">
+            <p class="step-card-title">Silahkan tambah jumlah cetak yang anda inginkan</p>
+            <div class="count-control">
+                <button type="button" class="count-btn" id="btn-count-minus" aria-label="Kurangi jumlah cetak" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+                <input type="number" id="print-count-input" min="1" max="99" step="1" value="1" inputmode="numeric" aria-label="Jumlah cetak">
+                <button type="button" class="count-btn" id="btn-count-plus" aria-label="Tambah jumlah cetak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+            </div>
+            <p class="step-note" id="print-price-note"></p>
+        </div>
+        <div class="step-actions">
+            <button class="btn btn-back" onclick="goToScreen('screen-frame')">Back</button>
+            <button class="btn btn-next" onclick="goToScreen('screen-payment')">Next</button>
+        </div>
+    </div>
+
+    <div id="screen-payment" class="screen">
+        <h2 class="step-title">Halaman Pembayaran</h2>
+        <div class="step-card payment-card">
+            <div class="payment-info">
+                <p class="step-card-title">Rincian Pembayaran</p>
+                <div class="payment-total" id="payment-total"></div>
+                <p class="payment-breakdown" id="payment-breakdown"></p>
+                <p class="payment-status" id="payment-status"></p>
+                <p class="step-note">Scan dan mulai cetak kenangan baru mu!</p>
+            </div>
+            <div class="payment-qr">
+                <img id="payment-qr-image" alt="QRIS pembayaran">
+                <svg class="payment-paid-icon" id="payment-paid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>
+                <p class="payment-qr-message" id="payment-qr-message"></p>
+            </div>
+        </div>
+        <div class="step-actions">
+            <button class="btn btn-back" id="btn-payment-back" onclick="goToScreen('screen-count')">Back</button>
+            <button class="btn btn-next" id="btn-payment-continue">Sudah Bayar, Lanjut</button>
+        </div>
     </div>
 
     <div id="screen-theme" class="screen">
@@ -68,7 +107,7 @@
             </div>
         </div>
         <div class="theme-actions">
-            <button class="btn btn-back" onclick="goToScreen('screen-frame')">Back</button>
+            <button class="btn btn-back" onclick="goBackFromTheme()">Back</button>
             <button class="btn btn-next" id="btn-next-theme" onclick="goToScreen('screen-camera'); startCameraSession();" disabled>Next</button>
         </div>
     </div>
@@ -208,6 +247,7 @@
 <script src="js/clip-recorder.js"></script>
 <script src="js/result-share.js"></script>
 <script src="js/email-share.js"></script>
+<script src="js/payment.js"></script>
 <script src="js/filters.js"></script>
 <script src="js/session-timer.js"></script>
 <script src="js/studio.js"></script>
