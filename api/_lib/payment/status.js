@@ -1,7 +1,7 @@
-import { requireAdmin } from '../_lib/auth-middleware.js';
-import { handlePreflight, sendOk, sendError } from '../_lib/response.js';
-import { findPaymentByOrderId } from '../_lib/payment-store.js';
-import { syncPaymentWithMidtrans } from '../_lib/payment-sync.js';
+import { requireAdmin } from '../auth-middleware.js';
+import { handlePreflight, sendOk, sendError } from '../response.js';
+import { findPaymentByOrderId } from '../payment-store.js';
+import { syncPaymentWithMidtrans } from '../payment-sync.js';
 
 export default async function handler(req, res) {
   if (handlePreflight(req, res)) return;

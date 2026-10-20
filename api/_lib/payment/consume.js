@@ -1,6 +1,6 @@
-import { requireAdmin } from '../_lib/auth-middleware.js';
-import { handlePreflight, sendOk, sendError } from '../_lib/response.js';
-import { consumePayment, findPaymentByOrderId } from '../_lib/payment-store.js';
+import { requireAdmin } from '../auth-middleware.js';
+import { handlePreflight, sendOk, sendError } from '../response.js';
+import { consumePayment, findPaymentByOrderId } from '../payment-store.js';
 
 // Satu pembayaran hanya boleh membuka satu sesi. Dipanggil sekali saat admin lanjut setelah bayar.
 export default async function handler(req, res) {

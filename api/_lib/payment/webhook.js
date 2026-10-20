@@ -1,6 +1,6 @@
-import { handlePreflight, sendOk, sendError } from '../_lib/response.js';
-import { findPaymentByOrderId, updatePaymentStatus } from '../_lib/payment-store.js';
-import { isValidNotificationSignature, mapTransactionStatus } from '../_lib/midtrans.js';
+import { handlePreflight, sendOk, sendError } from '../response.js';
+import { findPaymentByOrderId, updatePaymentStatus } from '../payment-store.js';
+import { isValidNotificationSignature, mapTransactionStatus } from '../midtrans.js';
 
 // Endpoint ini dipanggil oleh Midtrans (bukan browser), jadi keamanannya lewat signature_key.
 export default async function handler(req, res) {

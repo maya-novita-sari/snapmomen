@@ -1,12 +1,12 @@
 import crypto from 'node:crypto';
-import { requireAdmin } from '../_lib/auth-middleware.js';
-import { handlePreflight, sendOk, sendError } from '../_lib/response.js';
-import { loadPriceSettings } from '../_lib/settings-store.js';
+import { requireAdmin } from '../auth-middleware.js';
+import { handlePreflight, sendOk, sendError } from '../response.js';
+import { loadPriceSettings } from '../settings-store.js';
 import {
   insertPayment, findActivePaymentByClientRef, cancelPendingPayment, isUniqueViolation,
-} from '../_lib/payment-store.js';
-import { createQrisCharge, cancelTransaction } from '../_lib/midtrans.js';
-import { syncPaymentWithMidtrans } from '../_lib/payment-sync.js';
+} from '../payment-store.js';
+import { createQrisCharge, cancelTransaction } from '../midtrans.js';
+import { syncPaymentWithMidtrans } from '../payment-sync.js';
 
 const MIN_PRINT_COPIES = 1;
 const MAX_PRINT_COPIES = 99;

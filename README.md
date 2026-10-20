@@ -80,13 +80,15 @@ Catatan dari dokumentasi resmi masing-masing (belum diuji di proyek ini, cek ula
 
 ## Daftar file pembayaran
 
+Semua endpoint pembayaran dilayani satu function, `api/payment.js`, supaya jumlah function di Vercel tidak melewati batas paket Hobby. URL tetap `/api/payment/create`, `/status`, `/webhook`, `/cancel`, `/consume` lewat `rewrites` di `vercel.json`.
+
 | File | Fungsi |
 | --- | --- |
-| `api/payment/create.js` | Buat transaksi QRIS (khusus admin). Total dihitung di server. |
-| `api/payment/webhook.js` | Terima notifikasi Midtrans, cek signature dan nominal. |
-| `api/payment/cancel.js` | Batalkan order pending (khusus admin). |
-| `api/payment/consume.js` | Tandai pembayaran sudah dipakai satu kali (khusus admin). |
-| `api/payment/status.js` | Cek status transaksi (khusus admin), sinkron ke Midtrans kalau masih pending. |
+| `api/_lib/payment/create.js` | Buat transaksi QRIS (khusus admin). Total dihitung di server. |
+| `api/_lib/payment/webhook.js` | Terima notifikasi Midtrans, cek signature dan nominal. |
+| `api/_lib/payment/cancel.js` | Batalkan order pending (khusus admin). |
+| `api/_lib/payment/consume.js` | Tandai pembayaran sudah dipakai satu kali (khusus admin). |
+| `api/_lib/payment/status.js` | Cek status transaksi (khusus admin), sinkron ke Midtrans kalau masih pending. |
 | `api/_lib/midtrans.js` | Pemanggilan Midtrans dan verifikasi signature. |
 | `api/_lib/payment-store.js` | Query tabel `payments`. |
 | `api/_lib/settings-store.js` | Query tabel `settings`. |
