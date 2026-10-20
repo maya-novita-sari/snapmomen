@@ -37,6 +37,11 @@ function calculateTotalPrice(sessionPrice, extraPrintPrice, copies) {
   return sessionPrice + (copies - 1) * extraPrintPrice;
 }
 
+// Jumlah lembar yang sudah dibayar pada sesi ini, dipakai saat mencetak hasil.
+function getPaidPrintCopies() {
+  return printCopies;
+}
+
 function getEstimatedTotalPrice() {
   return calculateTotalPrice(PricingState.sessionPrice, PricingState.extraPrintPrice, printCopies);
 }

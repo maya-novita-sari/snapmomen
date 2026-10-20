@@ -108,7 +108,7 @@ async function saveAdminPhotoThenPrint(canvas, frameId, bundle) {
   const printableDataUrl = canvasToDeviceDataUrl(canvas);
   await uploadAdminPhoto(canvas, frameId, bundle);
   showToast(SAVE_MESSAGES.admin);
-  await printPhoto(printableDataUrl);
+  await printPhoto(printableDataUrl, getPaidPrintCopies());
 }
 
 // Customer: download ke device saja. Tanpa API, tanpa dialog printer.

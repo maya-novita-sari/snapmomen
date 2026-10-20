@@ -4,7 +4,7 @@ const PRINT_PAPER_HEIGHT_MM = 150;
 
 // Layer 1: WebUSB (works only if a compatible printer was already paired via
 // "Hubungkan Printer" and the browser/OS driver accepts raw JPEG bytes).
-async function tryWebUsbPrint(dataUrl) {
+async function tryWebUsbPrint(dataUrl, copies) {
   if (!navigator.usb) return false;
   try {
     const devices = await navigator.usb.getDevices();
@@ -16,7 +16,9 @@ async function tryWebUsbPrint(dataUrl) {
     await device.claimInterface(0);
 
     const bytes = await (await fetch(dataUrl)).arrayBuffer();
-    await device.transferOut(1, bytes);
+    for (let copyIndex = 0; copyIndex < copies; copyIndex += 1) {
+      await device.transferOut(1, bytes);
+    }
     await device.close();
     return true;
   } catch (err) {
@@ -27,7 +29,12 @@ async function tryWebUsbPrint(dataUrl) {
 
 // Layer 2: dialog cetak browser lewat iframe tersembunyi. Tidak kena popup blocker,
 // dan dialognya otomatis menampilkan semua printer yang tersedia di perangkat.
-function tryBrowserPrintDialog(dataUrl) {
+// Satu halaman per lembar, jadi satu dialog cetak sudah mencakup semua lembar.
+function buildPrintSheets(copies) {
+  return Array.from({ length: copies }, () => '<div class="sheet"><img class="print-image" src="${dataUrl}"></div>').join('');
+}
+
+function tryBrowserPrintDialog(dataUrl, copies) {
   const printFrame = document.createElement('iframe');
   printFrame.style.cssText = 'position:fixed;width:0;height:0;border:0;visibility:hidden';
   document.body.appendChild(printFrame);
@@ -41,18 +48,21 @@ function tryBrowserPrintDialog(dataUrl) {
         <style>
           @page { size: ${PRINT_PAPER_WIDTH_MM}mm ${PRINT_PAPER_HEIGHT_MM}mm; margin: 0; }
           html, body { margin: 0; padding: 0; width: ${PRINT_PAPER_WIDTH_MM}mm; height: ${PRINT_PAPER_HEIGHT_MM}mm; }
-          img { display: block; width: 100%; height: 100%; object-fit: contain; }
+          .sheet { width: ${PRINT_PAPER_WIDTH_MM}mm; height: ${PRINT_PAPER_HEIGHT_MM}mm; page-break-after: always; break-after: page; overflow: hidden; }
+          .sheet:last-child { page-break-after: auto; break-after: auto; }
+          .print-image { display: block; width: 100%; height: 100%; object-fit: contain; }
         </style>
       </head>
       <body>
-        <img id="print-image" src="${dataUrl}">
+        ${buildPrintSheets(copies).split('${dataUrl}').join(dataUrl)}
       </body>
     </html>
   `);
   frameDocument.close();
 
-  const image = frameDocument.getElementById('print-image');
-  image.onload = () => {
+  const images = Array.from(frameDocument.querySelectorAll('.print-image'));
+  const lastImage = images[images.length - 1];
+  lastImage.onload = () => {
     printFrame.contentWindow.focus();
     printFrame.contentWindow.print();
     setTimeout(() => printFrame.remove(), PRINT_FRAME_CLEANUP_MS);
@@ -95,14 +105,14 @@ async function ensurePrinterConnected() {
 }
 
 // Orchestrates the fallback. Layer 3 (manual) just tells the user to print by hand.
-async function printPhoto(dataUrl) {
-  const printedViaUsb = await tryWebUsbPrint(dataUrl);
+async function printPhoto(dataUrl, copies = 1) {
+  const printedViaUsb = await tryWebUsbPrint(dataUrl, copies);
   if (printedViaUsb) {
-    showToast('Foto dikirim ke printer.');
+    showToast(`${copies} lembar foto dikirim ke printer.`);
     return;
   }
 
-  const openedDialog = tryBrowserPrintDialog(dataUrl);
+  const openedDialog = tryBrowserPrintDialog(dataUrl, copies);
   if (openedDialog) {
     showToast('Membuka dialog cetak...');
     return;
