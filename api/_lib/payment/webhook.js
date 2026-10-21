@@ -1,34 +1,30 @@
-import { handlePreflight, sendOk, sendError } from '../response.js';
-import { findPaymentByOrderId, updatePaymentStatus } from '../payment-store.js';
-import { isValidNotificationSignature, mapTransactionStatus } from '../midtrans.js';
+import { handlePreflight, sendJson, sendError } from '../response.js';
+import { findPaymentByOrderId } from '../payment-store.js';
+import { syncPaymentWithGateway } from '../payment-sync.js';
 
-// Endpoint ini dipanggil oleh Midtrans (bukan browser), jadi keamanannya lewat signature_key.
+const NOTIFICATION_SUCCESS_BODY = { ok: true, responseCode: '2005200', responseMessage: 'Successful' };
+
+function readOrderId(notification) {
+  return String(notification.originalPartnerReferenceNo || notification.partnerReferenceNo || '');
+}
+
+// Endpoint ini dipanggil oleh DOKU (bukan browser). Isi notifikasi tidak dipercaya begitu saja:
+// kita hanya mengambil nomor order, lalu status sebenarnya ditanyakan langsung ke DOKU.
 export default async function handler(req, res) {
   if (handlePreflight(req, res)) return;
   if (req.method !== 'POST') return sendError(res, 405, 'Method tidak diizinkan.');
 
-  const notification = req.body || {};
+  const orderId = readOrderId(req.body || {});
 
   try {
-    if (!isValidNotificationSignature(notification)) {
-      return sendError(res, 403, 'Signature tidak valid.');
-    }
+    const payment = orderId ? await findPaymentByOrderId(orderId) : null;
+    if (!payment) return sendJson(res, 200, NOTIFICATION_SUCCESS_BODY);
 
-    const payment = await findPaymentByOrderId(notification.order_id);
-    if (!payment) return sendOk(res, { ignored: true });
-
-    if (Number(notification.gross_amount) !== payment.amount) {
-      return sendError(res, 400, 'Nominal tidak cocok.');
-    }
-
-    const status = mapTransactionStatus(notification.transaction_status, notification.fraud_status);
-    if (status === 'paid' && ['canceled', 'expired', 'failed'].includes(payment.status)) {
+    const synced = await syncPaymentWithGateway(payment);
+    if (synced.status === 'paid' && ['canceled', 'expired', 'failed'].includes(payment.status)) {
       console.warn('payment paid pada order yang sudah tidak aktif, perlu dicek manual:', payment.order_id);
     }
-    await updatePaymentStatus({
-      orderId: payment.order_id, status, transactionId: notification.transaction_id,
-    });
-    return sendOk(res);
+    return sendJson(res, 200, NOTIFICATION_SUCCESS_BODY);
   } catch (err) {
     console.error('payment webhook error:', err);
     return sendError(res, 500, 'Gagal memproses notifikasi.');

@@ -1,7 +1,7 @@
 import { requireAdmin } from '../auth-middleware.js';
 import { handlePreflight, sendOk, sendError } from '../response.js';
 import { findPaymentByOrderId } from '../payment-store.js';
-import { syncPaymentWithMidtrans } from '../payment-sync.js';
+import { syncPaymentWithGateway } from '../payment-sync.js';
 
 export default async function handler(req, res) {
   if (handlePreflight(req, res)) return;
@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   try {
     let payment = await findPaymentByOrderId(orderId);
     if (!payment) return sendError(res, 404, 'Transaksi tidak ditemukan.');
-    if (payment.status === 'pending') payment = await syncPaymentWithMidtrans(payment);
+    if (payment.status === 'pending') payment = await syncPaymentWithGateway(payment);
     return sendOk(res, {
       order_id: payment.order_id,
       amount: payment.amount,

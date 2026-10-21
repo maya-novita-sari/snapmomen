@@ -1,17 +1,8 @@
 import { requireAdmin } from '../auth-middleware.js';
 import { handlePreflight, sendOk, sendError } from '../response.js';
 import { findPaymentByOrderId, updatePaymentStatus } from '../payment-store.js';
-import { cancelTransaction, fetchTransactionStatus, mapTransactionStatus } from '../midtrans.js';
-
-// Kalau Midtrans menolak pembatalan, kemungkinan QR baru saja dibayar. Cek status sebenarnya.
-async function resolveStatusAfterFailedCancel(payment) {
-  const remote = await fetchTransactionStatus(payment.order_id);
-  if (!remote) return payment;
-  const mappedStatus = mapTransactionStatus(remote.transaction_status, remote.fraud_status);
-  return updatePaymentStatus({
-    orderId: payment.order_id, status: mappedStatus, transactionId: remote.transaction_id,
-  });
-}
+import { cancelTransaction } from '../doku.js';
+import { syncPaymentWithGateway } from '../payment-sync.js';
 
 // Membatalkan QR yang ditinggalkan (jumlah cetak diubah atau sesi direset) supaya tidak bisa dibayar lagi.
 export default async function handler(req, res) {
@@ -27,10 +18,11 @@ export default async function handler(req, res) {
     if (!payment) return sendError(res, 404, 'Transaksi tidak ditemukan.');
     if (payment.status !== 'pending') return sendOk(res, { order_id: orderId, status: payment.status });
 
-    const isCanceled = await cancelTransaction(orderId);
+    // Kalau DOKU menolak pembatalan, kemungkinan QR baru saja dibayar. Cek status sebenarnya.
+    const isCanceled = await cancelTransaction({ orderId, transactionId: payment.transaction_id });
     payment = isCanceled
       ? await updatePaymentStatus({ orderId, status: 'canceled' })
-      : await resolveStatusAfterFailedCancel(payment);
+      : await syncPaymentWithGateway(payment);
     return sendOk(res, { order_id: orderId, status: payment.status });
   } catch (err) {
     console.error('payment cancel error:', err);
