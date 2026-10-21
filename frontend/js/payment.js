@@ -19,7 +19,8 @@ const PaymentState = {
   order: null,
   errorMessage: '',
   isCreating: false,
-  isChecking: false,
+  isAdvancing: false,
+  qrLoadFailed: false,
   pollTimerId: null,
   requestId: 0,
   fallbackRef: '',
@@ -115,53 +116,40 @@ function setupPrintCountControls() {
 
 // ---------- Halaman pembayaran: tampilan ----------
 
-function buildPaymentBreakdownText() {
-  const extraCopies = printCopies - 1;
-  const sessionText = `Sesi ${formatRupiah(PricingState.sessionPrice)}`;
-  if (extraCopies === 0) return `${sessionText}, 1 lembar cetak`;
-  return `${sessionText} + ${extraCopies} cetak tambahan x ${formatRupiah(PricingState.extraPrintPrice)}`;
-}
-
-function buildPaymentStatusText() {
+function buildPaymentMessage() {
   const order = PaymentState.order;
   if (PaymentState.errorMessage) return PaymentState.errorMessage;
   if (PaymentState.isCreating || !order) return 'Membuat QR pembayaran...';
-  if (order.status === 'paid') {
-    return order.amount === 0 ? 'Tidak ada biaya, silakan lanjut.' : 'Pembayaran diterima. Silakan lanjut.';
-  }
-  if (order.status === 'pending') return 'Menunggu pembayaran...';
-  if (order.status === 'used') return 'Pembayaran ini sudah dipakai. Klik tombol di bawah untuk membuat QR baru.';
-  return 'QR sudah tidak berlaku. Klik tombol di bawah untuk membuat QR baru.';
+  if (PaymentState.qrLoadFailed) return 'QR gagal dimuat.';
+  if (order.status === 'paid') return 'Pembayaran berhasil';
+  if (order.status === 'used') return 'Pembayaran ini sudah dipakai. Buat QR baru untuk melanjutkan.';
+  return 'QR sudah tidak berlaku.';
 }
 
 function renderPaymentQr() {
   const image = document.getElementById('payment-qr-image');
   const message = document.getElementById('payment-qr-message');
-  const qrUrl = PaymentState.order?.qrUrl || '';
-  const isActiveQr = Boolean(qrUrl) && PaymentState.order.status === 'pending';
+  const retryButton = document.getElementById('btn-payment-retry');
+  const order = PaymentState.order;
+  const qrUrl = order?.qrUrl || '';
+  const isActiveQr = Boolean(qrUrl) && order.status === 'pending' && !PaymentState.qrLoadFailed;
+  const isPaid = order?.status === 'paid' && !PaymentState.errorMessage;
 
   if (isActiveQr && image.getAttribute('src') !== qrUrl) image.src = qrUrl;
   if (!isActiveQr) image.removeAttribute('src');
   image.style.display = isActiveQr ? 'block' : 'none';
   message.style.display = isActiveQr ? 'none' : 'block';
-  const isPaid = PaymentState.order?.status === 'paid';
-  message.textContent = isPaid ? 'Pembayaran berhasil' : buildPaymentStatusText();
+  message.textContent = buildPaymentMessage();
   message.classList.toggle('is-paid', isPaid);
   document.getElementById('payment-paid-icon').style.display = isPaid ? 'block' : 'none';
+  retryButton.style.display = !isActiveQr && !isPaid && !PaymentState.isCreating ? 'inline-block' : 'none';
 }
 
 function renderPaymentSummary() {
   const order = PaymentState.order;
   document.getElementById('payment-total').textContent = formatRupiah(order ? order.amount : getEstimatedTotalPrice());
-  document.getElementById('payment-breakdown').textContent = buildPaymentBreakdownText();
-
-  const status = document.getElementById('payment-status');
-  status.textContent = buildPaymentStatusText();
-  status.classList.toggle('is-paid', order?.status === 'paid');
-
-  document.getElementById('btn-payment-continue').disabled = PaymentState.isCreating || PaymentState.isChecking;
   // Setelah lunas, jumlah cetak tidak boleh diubah lagi supaya tidak perlu bayar ulang.
-  document.getElementById('btn-payment-back').disabled = order?.status === 'paid';
+  document.getElementById('btn-payment-back').disabled = order?.status === 'paid' || PaymentState.isAdvancing;
 }
 
 function renderPaymentScreen() {
@@ -229,6 +217,7 @@ async function createPaymentOrder() {
   cancelPaymentOrder(PaymentState.order);
   PaymentState.order = null;
   PaymentState.errorMessage = '';
+  PaymentState.qrLoadFailed = false;
   PaymentState.isCreating = true;
   renderPaymentScreen();
 
@@ -255,6 +244,7 @@ async function createPaymentOrder() {
       PaymentState.isCreating = false;
       renderPaymentScreen();
       if (isPaymentScreenActive()) startPaymentPolling();
+      advanceIfPaid();
     }
   }
 }
@@ -271,6 +261,7 @@ async function refreshPaymentStatus() {
     console.warn('Cek status pembayaran gagal:', err);
   }
   renderPaymentScreen();
+  advanceIfPaid();
 }
 
 function startPaymentPolling() {
@@ -296,7 +287,8 @@ function resetPaymentOrder() {
   PaymentState.order = null;
   PaymentState.errorMessage = '';
   PaymentState.isCreating = false;
-  PaymentState.isChecking = false;
+  PaymentState.isAdvancing = false;
+  PaymentState.qrLoadFailed = false;
 }
 
 async function preparePaymentScreen() {
@@ -307,6 +299,7 @@ async function preparePaymentScreen() {
   } else {
     renderPaymentScreen();
     startPaymentPolling();
+    advanceIfPaid();
   }
 }
 
@@ -324,46 +317,26 @@ async function consumePaidOrder(order) {
   }
 }
 
-// Tombol "Sudah Bayar, Lanjut": hanya lanjut kalau server sudah mengonfirmasi pembayaran dan belum pernah dipakai.
-async function handlePaymentContinue() {
-  if (PaymentState.isCreating || PaymentState.isChecking) return;
+// Begitu server mengonfirmasi lunas, pembayaran ditandai terpakai lalu halaman pindah otomatis ke pilih tema.
+async function advanceIfPaid() {
+  const order = PaymentState.order;
+  if (!order || order.status !== 'paid' || PaymentState.isAdvancing || !isPaymentScreenActive()) return;
 
-  if (shouldCreateNewOrder()) {
-    await createPaymentOrder();
-    if (PaymentState.order?.status !== 'paid') {
-      if (PaymentState.order) showToast('QR baru sudah dibuat. Silakan scan dan bayar.');
-      return;
-    }
-  }
-
-  PaymentState.isChecking = true;
-  renderPaymentSummary();
-  let canContinue = false;
+  PaymentState.isAdvancing = true;
+  stopPaymentPolling();
+  renderPaymentScreen();
   try {
-    await refreshPaymentStatus();
-    const order = PaymentState.order;
-    canContinue = order?.status === 'paid' && await consumePaidOrder(order);
+    if (await consumePaidOrder(order)) goToScreen('screen-theme');
   } finally {
-    PaymentState.isChecking = false;
+    PaymentState.isAdvancing = false;
     renderPaymentScreen();
-  }
-
-  if (canContinue) {
-    stopPaymentPolling();
-    goToScreen('screen-theme');
-    return;
-  }
-  if (PaymentState.order?.status === 'pending') {
-    showToast('Pembayaran belum diterima. Scan QR, bayar, lalu coba lagi.');
   }
 }
 
 function setupPaymentScreen() {
-  document.getElementById('btn-payment-continue').addEventListener('click', handlePaymentContinue);
+  document.getElementById('btn-payment-retry').addEventListener('click', createPaymentOrder);
   document.getElementById('payment-qr-image').addEventListener('error', () => {
-    document.getElementById('payment-qr-image').style.display = 'none';
-    const message = document.getElementById('payment-qr-message');
-    message.style.display = 'block';
-    message.textContent = 'QR gagal dimuat. Kembali lalu buka halaman ini lagi.';
+    PaymentState.qrLoadFailed = true;
+    renderPaymentScreen();
   });
 }

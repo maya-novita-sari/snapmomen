@@ -871,6 +871,9 @@ html, body {
     text-shadow:2px 2px 0 rgba(0,0,0,0.12);
     text-align:center;
 }
+.step-card, .step-card * {
+    font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+}
 .step-card {
     width:100%;
     max-width:760px;
@@ -886,18 +889,17 @@ html, body {
 }
 .step-card-title {
     margin:0;
-    font-size:1.4rem;
-    font-weight:800;
+    font-size:1.3rem;
+    font-weight:700;
     color:#2B1B17;
     text-align:center;
-    font-family:'Comic Sans MS','Segoe UI',sans-serif;
 }
 .step-note {
     margin:0;
     max-width:520px;
     font-size:0.95rem;
-    font-weight:700;
-    color:#2B1B17;
+    font-weight:500;
+    color:#4A3A35;
     text-align:center;
 }
 .step-actions { display:flex; gap:20px; justify-content:center; }
@@ -924,9 +926,9 @@ html, body {
     border-radius:26px;
     background:#FFF5F7;
     color:#2B1B17;
-    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+    font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
     font-size:2rem;
-    font-weight:800;
+    font-weight:700;
     text-align:center;
     outline:none;
     -moz-appearance:textfield;
@@ -940,24 +942,22 @@ html, body {
 .payment-total {
     min-width:250px;
     box-sizing:border-box;
-    padding:16px 24px;
-    border:2px solid #5D4037;
-    border-radius:26px;
+    padding:14px 24px;
+    border:1.5px solid #5D4037;
+    border-radius:20px;
     background:#FFF5F7;
     color:#2B1B17;
-    font-family:'Comic Sans MS','Segoe UI',sans-serif;
-    font-size:2.2rem;
-    font-weight:800;
+    font-size:2rem;
+    font-weight:700;
     text-align:center;
 }
-.payment-breakdown { margin:0; font-size:0.85rem; font-weight:700; color:#6B544C; text-align:center; }
 .payment-qr { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; width:220px; min-height:220px; }
 .payment-paid-icon { display:none; width:84px; height:84px; color:#1E7A64; }
 .payment-qr img { display:none; width:100%; height:auto; max-height:260px; object-fit:contain; background:#fff; }
-.payment-qr-message { margin:0; font-size:0.9rem; font-weight:700; color:#6B544C; text-align:center; }
-.payment-status { margin:0; font-size:0.95rem; font-weight:800; color:#8A5A00; text-align:center; }
-.payment-status.is-paid { color:#1E7A64; }
-.payment-qr-message.is-paid { font-size:1.2rem; font-weight:800; color:#1E7A64; }
+.payment-qr-message { margin:0; font-size:0.95rem; font-weight:600; color:#6B544C; text-align:center; }
+.payment-retry { display:none; padding:10px 22px; border:1.5px solid #5D4037; border-radius:999px; background:#5FD3C4; color:#2B1B17; font-size:0.95rem; font-weight:700; cursor:pointer; }
+.payment-retry:active { transform:translateY(2px); }
+.payment-qr-message.is-paid { font-size:1.15rem; font-weight:700; color:#1E7A64; }
 
 @media (max-width:700px) {
     .step-title { font-size:1.4rem; margin-bottom:16px; }
