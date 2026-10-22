@@ -12,6 +12,8 @@ function readOrderId(notification) {
 // kita hanya mengambil nomor order, lalu status sebenarnya ditanyakan langsung ke DOKU.
 export default async function handler(req, res) {
   if (handlePreflight(req, res)) return;
+  // GET dan HEAD hanya untuk pengecekan URL (misalnya validasi dari dashboard DOKU). Tidak mengubah apa pun.
+  if (req.method === 'GET' || req.method === 'HEAD') return sendJson(res, 200, { ok: true });
   if (req.method !== 'POST') return sendError(res, 405, 'Method tidak diizinkan.');
 
   const orderId = readOrderId(req.body || {});
