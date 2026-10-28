@@ -955,6 +955,8 @@ html, body {
 .payment-paid-icon { display:none; width:84px; height:84px; color:#1E7A64; }
 .payment-qr img { display:none; width:100%; height:auto; max-height:260px; object-fit:contain; background:#fff; }
 .payment-qr-message { margin:0; font-size:0.95rem; font-weight:600; color:#6B544C; text-align:center; }
+.payment-countdown { display:none; margin:0; font-size:0.95rem; font-weight:600; color:#6B544C; text-align:center; font-variant-numeric:tabular-nums; }
+.payment-countdown.is-urgent { color:#B3261E; }
 .payment-retry { display:none; padding:10px 22px; border:1.5px solid #5D4037; border-radius:999px; background:#5FD3C4; color:#2B1B17; font-size:0.95rem; font-weight:700; cursor:pointer; }
 .payment-retry:active { transform:translateY(2px); }
 .payment-qr-message.is-paid { font-size:1.15rem; font-weight:700; color:#1E7A64; }

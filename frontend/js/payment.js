@@ -1,10 +1,16 @@
 // Jumlah cetak, harga, dan pembayaran QRIS dinamis (khusus akun admin).
 
+// Saklar pembayaran. false = halaman jumlah cetak dan pembayaran dilewati, admin langsung ke pilih tema
+// dan hasil dicetak 1 lembar. Ubah ke true untuk menyalakan lagi.
+const PAYMENT_ENABLED = false;
+
 const DEFAULT_SESSION_PRICE = 40000;
 const DEFAULT_EXTRA_PRINT_PRICE = 20000;
 const MIN_PRINT_COPIES = 1;
 const MAX_PRINT_COPIES = 99;
 const PAYMENT_POLL_INTERVAL_MS = 4000;
+const COUNTDOWN_TICK_MS = 1000;
+const COUNTDOWN_URGENT_SECONDS = 60;
 const PAYMENT_REF_STORAGE_KEY = 'snapmomen_payment_ref';
 const PAYMENT_CREATE_TIMEOUT_MS = 30000;
 
@@ -22,6 +28,7 @@ const PaymentState = {
   isAdvancing: false,
   qrLoadFailed: false,
   pollTimerId: null,
+  countdownTimerId: null,
   requestId: 0,
   fallbackRef: '',
 };
@@ -142,6 +149,7 @@ function renderPaymentQr() {
   message.textContent = buildPaymentMessage();
   message.classList.toggle('is-paid', isPaid);
   document.getElementById('payment-paid-icon').style.display = isPaid ? 'block' : 'none';
+  renderPaymentCountdown();
   retryButton.style.display = !isActiveQr && !isPaid && !PaymentState.isCreating ? 'inline-block' : 'none';
 }
 
@@ -197,10 +205,15 @@ function isPaymentScreenActive() {
   return document.getElementById('screen-payment').classList.contains('active');
 }
 
+function isOrderExpired(order) {
+  return order.status === 'pending' && order.expiresAt !== null && Date.now() >= order.expiresAt;
+}
+
 function shouldCreateNewOrder() {
   const order = PaymentState.order;
   if (!order) return true;
   if (order.copies !== printCopies) return true;
+  if (isOrderExpired(order)) return true;
   return order.status !== 'pending' && order.status !== 'paid';
 }
 
@@ -234,7 +247,7 @@ async function createPaymentOrder() {
       amount: data.amount,
       status: data.status,
       qrUrl: data.qr_url,
-      createdAt: Date.now(),
+      expiresAt: Number.isFinite(data.expires_in) ? Date.now() + data.expires_in * 1000 : null,
     };
   } catch (err) {
     if (requestId !== PaymentState.requestId) return;
@@ -268,6 +281,7 @@ function startPaymentPolling() {
   stopPaymentPolling();
   const order = PaymentState.order;
   if (!order || order.status !== 'pending') return;
+  startPaymentCountdown();
   PaymentState.pollTimerId = setInterval(async () => {
     await refreshPaymentStatus();
     if (PaymentState.order?.status !== 'pending') stopPaymentPolling();
@@ -277,6 +291,54 @@ function startPaymentPolling() {
 function stopPaymentPolling() {
   clearInterval(PaymentState.pollTimerId);
   PaymentState.pollTimerId = null;
+  stopPaymentCountdown();
+}
+
+// ---------- Halaman pembayaran: hitung mundur masa berlaku QR ----------
+
+function formatCountdown(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function getRemainingSeconds(order) {
+  return Math.max(0, Math.ceil((order.expiresAt - Date.now()) / 1000));
+}
+
+function renderPaymentCountdown() {
+  const element = document.getElementById('payment-countdown');
+  const order = PaymentState.order;
+  const isVisible = Boolean(order) && order.status === 'pending' && order.expiresAt !== null && !PaymentState.qrLoadFailed;
+  element.style.display = isVisible ? 'block' : 'none';
+  if (!isVisible) return;
+
+  const remainingSeconds = getRemainingSeconds(order);
+  element.textContent = `QR berlaku ${formatCountdown(remainingSeconds)}`;
+  element.classList.toggle('is-urgent', remainingSeconds <= COUNTDOWN_URGENT_SECONDS);
+}
+
+// Saat waktu habis, QR lama dibatalkan dan QR baru dibuat otomatis.
+function tickPaymentCountdown() {
+  const order = PaymentState.order;
+  if (!order || order.status !== 'pending') return;
+  renderPaymentCountdown();
+  if (getRemainingSeconds(order) > 0) return;
+  stopPaymentPolling();
+  createPaymentOrder();
+}
+
+function startPaymentCountdown() {
+  stopPaymentCountdown();
+  const order = PaymentState.order;
+  if (!order || order.status !== 'pending' || order.expiresAt === null) return;
+  renderPaymentCountdown();
+  PaymentState.countdownTimerId = setInterval(tickPaymentCountdown, COUNTDOWN_TICK_MS);
+}
+
+function stopPaymentCountdown() {
+  clearInterval(PaymentState.countdownTimerId);
+  PaymentState.countdownTimerId = null;
 }
 
 function resetPaymentOrder() {

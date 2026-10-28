@@ -84,10 +84,10 @@ function goToScreen(screenId) {
   else stopFilterPreview();
 }
 
-// Admin melewati halaman jumlah cetak dan pembayaran, customer langsung ke pilih tema.
+// Pembayaran hanya untuk admin dan hanya kalau PAYMENT_ENABLED menyala. Selain itu langsung ke pilih tema.
 // Kalau sesi ini sudah dibayar, halaman jumlah cetak dan pembayaran dilewati supaya tidak bayar dua kali.
 function goAfterModelSelection() {
-  const needsPayment = isAdminUser() && !hasPaidSession();
+  const needsPayment = PAYMENT_ENABLED && isAdminUser() && !hasPaidSession();
   goToScreen(needsPayment ? 'screen-count' : 'screen-theme');
 }
 
