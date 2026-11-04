@@ -84,18 +84,40 @@ function goToScreen(screenId) {
   else stopFilterPreview();
 }
 
-// Pembayaran hanya untuk admin dan hanya kalau PAYMENT_ENABLED menyala. Selain itu langsung ke pilih tema.
+// Admin memilih jumlah cetak setelah pilih model, customer langsung ke pilih tema.
 // Kalau sesi ini sudah dibayar, halaman jumlah cetak dan pembayaran dilewati supaya tidak bayar dua kali.
 function goAfterModelSelection() {
-  const needsPayment = PAYMENT_ENABLED && isAdminUser() && !hasPaidSession();
-  goToScreen(needsPayment ? 'screen-count' : 'screen-theme');
+  const needsPrintCount = isAdminUser() && !hasPaidSession();
+  goToScreen(needsPrintCount ? 'screen-count' : 'screen-theme');
+}
+
+// Halaman pembayaran QRIS hanya muncul kalau PAYMENT_ENABLED menyala.
+function goAfterPrintCount() {
+  goToScreen(PAYMENT_ENABLED ? 'screen-payment' : 'screen-theme');
 }
 
 function goBackFromTheme() {
-  goToScreen('screen-frame');
+  const backToPrintCount = isAdminUser() && !PAYMENT_ENABLED;
+  goToScreen(backToPrintCount ? 'screen-count' : 'screen-frame');
+}
+
+// Admin: studio dibuka layar penuh supaya bar alamat browser tidak terlihat.
+// Browser hanya mengizinkan layar penuh dari klik pengguna, jadi ini dipanggil saat tombol start ditekan.
+function enterAdminFullscreen() {
+  if (!isAdminUser() || document.fullscreenElement) return;
+  const root = document.documentElement;
+  const requestFullscreen = root.requestFullscreen || root.webkitRequestFullscreen;
+  if (!requestFullscreen) return;
+  try {
+    const request = requestFullscreen.call(root);
+    if (request && request.catch) request.catch((err) => console.warn('Layar penuh ditolak:', err));
+  } catch (err) {
+    console.warn('Layar penuh tidak didukung:', err);
+  }
 }
 
 function startApp() {
+  enterAdminFullscreen();
   startSessionTimer();
   goToScreen('screen-frame');
 }
