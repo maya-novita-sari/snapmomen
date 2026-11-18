@@ -126,7 +126,7 @@ function startApp() {
 async function startWelcomeCamera() {
   try {
     if (!welcomeStream) {
-      welcomeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      welcomeStream = await openConfiguredCameraStream();
     }
     const video = document.getElementById('welcome-video');
     if (video) {
@@ -378,7 +378,7 @@ async function startCameraSession() {
 
   try {
     cameraStream = cameraStream || welcomeStream
-      || await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      || await openConfiguredCameraStream();
     const video = document.getElementById('video');
     video.srcObject = cameraStream;
     await video.play();

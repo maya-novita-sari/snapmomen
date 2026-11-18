@@ -3,6 +3,14 @@ import { handlePreflight, sendOk, sendError } from './_lib/response.js';
 import { ensureSettingsTable, loadPriceSettings, saveSetting } from './_lib/settings-store.js';
 
 const MAX_PRICE = 100000000;
+const MAX_TEXT_LENGTH = 300;
+const TEXT_SETTING_LABELS = {
+  kamera_device_id: 'ID kamera',
+  kamera_label: 'Nama kamera',
+  printer_name: 'Nama printer',
+  printer_vendor_id: 'Vendor ID printer',
+  printer_product_id: 'Product ID printer',
+};
 
 export default async function handler(req, res) {
   if (handlePreflight(req, res)) return;
@@ -30,6 +38,18 @@ function parsePrice(value, label) {
   return String(price);
 }
 
+function parseText(value, label) {
+  const text = value === null ? '' : String(value);
+  if (text.length > MAX_TEXT_LENGTH) throw new Error(`${label} terlalu panjang.`);
+  return text;
+}
+
+function buildTextUpdates(body) {
+  return Object.entries(TEXT_SETTING_LABELS)
+    .filter(([key]) => body[key] !== undefined)
+    .map(([key, label]) => ({ key, value: parseText(body[key], label) }));
+}
+
 // Mengubah body request menjadi daftar { key, value } yang valid. Hanya key yang dikirim yang diproses.
 function buildSettingUpdates(body) {
   const updates = [];
@@ -39,7 +59,7 @@ function buildSettingUpdates(body) {
   if (body.harga_tambah_cetak !== undefined) {
     updates.push({ key: 'harga_tambah_cetak', value: parsePrice(body.harga_tambah_cetak, 'Harga tambah cetak') });
   }
-  return updates;
+  return [...updates, ...buildTextUpdates(body)];
 }
 
 async function handleUpdate(req, res) {

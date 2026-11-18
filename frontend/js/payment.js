@@ -1,7 +1,8 @@
 // Jumlah cetak, harga, dan pembayaran QRIS dinamis (khusus akun admin).
 
-// Saklar pembayaran. false = halaman jumlah cetak dan pembayaran dilewati, admin langsung ke pilih tema
-// dan hasil dicetak 1 lembar. Ubah ke true untuk menyalakan lagi.
+// Saklar pembayaran QRIS. false = halaman pembayaran (QR) dilewati, dari jumlah cetak admin langsung ke pilih tema
+// dan hasil tetap dicetak sesuai jumlah cetak. Ubah ke true untuk menyalakan lagi.
+// TODO: re-enable payment (ubah jadi true, lalu set PAYMENT_ENABLED=true di env project API)
 const PAYMENT_ENABLED = false;
 
 const DEFAULT_SESSION_PRICE = 40000;
@@ -225,6 +226,8 @@ function cancelPaymentOrder(order) {
 }
 
 async function createPaymentOrder() {
+  // TODO: re-enable payment
+  if (!PAYMENT_ENABLED) return;
   const requestId = ++PaymentState.requestId;
   stopPaymentPolling();
   cancelPaymentOrder(PaymentState.order);
@@ -354,6 +357,8 @@ function resetPaymentOrder() {
 }
 
 async function preparePaymentScreen() {
+  // TODO: re-enable payment
+  if (!PAYMENT_ENABLED) return;
   renderPaymentScreen();
   await loadPricingSettings();
   if (shouldCreateNewOrder()) {

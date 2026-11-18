@@ -15,12 +15,22 @@ const ACTION_HANDLERS = {
   consume: consumeHandler,
 };
 
+// TODO: re-enable payment. Pembuatan order baru diblokir kecuali env PAYMENT_ENABLED=true.
+// Webhook, status, cancel dan consume tetap jalan supaya order lama tidak menggantung.
+function isPaymentCreationAllowed() {
+  return process.env.PAYMENT_ENABLED === 'true';
+}
+
 export default async function handler(req, res) {
   if (handlePreflight(req, res)) return;
 
   const action = String((req.query && req.query.action) || '');
   const actionHandler = Object.hasOwn(ACTION_HANDLERS, action) ? ACTION_HANDLERS[action] : null;
   if (!actionHandler) return sendError(res, 404, 'Endpoint pembayaran tidak ditemukan.');
+
+  if (action === 'create' && !isPaymentCreationAllowed()) {
+    return sendError(res, 503, 'Pembayaran sedang dinonaktifkan.');
+  }
 
   return actionHandler(req, res);
 }

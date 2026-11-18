@@ -110,4 +110,21 @@ th{background:var(--cream-2);font-family:var(--font-display)}
 .icon-btn-play .icon-svg{fill:currentColor;stroke:none}
 
 /* ===== Pengaturan harga ===== */
+.dash-row{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;margin-bottom:20px}
+.dash-row .settings-card{flex:1 1 280px;min-width:0;margin-bottom:0}
+.dash-row{align-items:stretch}
 .settings-title{margin:0 0 12px;font-size:1.05rem}
+
+/* ===== Kartu perangkat: printer dan kamera ===== */
+.card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.device-status{margin:0 0 12px;font-weight:700}
+.device-status[data-state="connected"]{color:#2E8B57}
+.device-status[data-state="disconnected"]{color:#C0392B}
+.device-error{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#FDECEA;color:#9B2C20;font-size:.9rem}
+.device-note{margin:0;opacity:.7;font-size:.82rem}
+.camera-preview{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:12px;background:#000;margin-bottom:12px}
+.camera-modal-box{max-width:480px;width:100%;text-align:left;max-height:90vh;overflow-y:auto}
+.device-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.device-item{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:2px solid #EADFCB;border-radius:12px;cursor:pointer;word-break:break-all}
+.device-item small{opacity:.65}
+.device-empty{margin:0;opacity:.7}

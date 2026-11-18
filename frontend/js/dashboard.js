@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupTokenModal();
   setupCodeModal();
   setupPrinterPanel();
+  setupCameraPanel();
   setupPricePanel();
   setupUserFilter();
   setupPhotoPanels();
@@ -538,46 +539,6 @@ async function handleDeleteUser(id) {
   } catch (err) {
     showToast(err.message || 'Gagal menghapus user.');
   }
-}
-
-// ---------- Panel: Printer ----------
-
-function setupPrinterPanel() {
-  refreshPrinterStatus();
-  document.getElementById('connectPrinterBtn').addEventListener('click', handleConnectPrinter);
-  document.getElementById('testPrintBtn').addEventListener('click', handleTestPrint);
-}
-
-async function refreshPrinterStatus() {
-  try {
-    const { printer } = await apiRequest('/printer', { auth: false });
-    document.getElementById('printerStatus').textContent = printer.connected
-      ? `Terhubung: ${printer.printer_name}`
-      : 'Belum terhubung';
-  } catch (err) {
-    showToast(err.message || 'Gagal memuat status printer.');
-  }
-}
-
-async function handleConnectPrinter() {
-  try {
-    const device = await connectUsbPrinter();
-    await apiRequest('/printer', {
-      method: 'POST',
-      body: { printer_name: device.productName || 'USB Printer', connected: true },
-    });
-    showToast('Printer terhubung.');
-    await refreshPrinterStatus();
-  } catch (err) {
-    showToast(err.message || 'Gagal menghubungkan printer.');
-  }
-}
-
-async function handleTestPrint() {
-  const testImage = 'data:image/svg+xml;base64,' + btoa(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="100%" height="100%" fill="#FDF6E3"/><text x="20" y="100" font-size="20">Snapmomen Test Print</text></svg>',
-  );
-  await printPhoto(testImage);
 }
 
 // ---------- Panel: Pengaturan (harga) ----------

@@ -26,11 +26,20 @@ function readPrice(rowMap, key, fallback) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
+function readText(rowMap, key) {
+  return rowMap[key] || '';
+}
+
 function buildSettings(rows) {
   const rowMap = Object.fromEntries(rows.map((row) => [row.key, row.value]));
   return {
     harga_sesi: readPrice(rowMap, 'harga_sesi', DEFAULT_SESSION_PRICE),
     harga_tambah_cetak: readPrice(rowMap, 'harga_tambah_cetak', DEFAULT_EXTRA_PRINT_PRICE),
+    kamera_device_id: readText(rowMap, 'kamera_device_id'),
+    kamera_label: readText(rowMap, 'kamera_label'),
+    printer_name: readText(rowMap, 'printer_name'),
+    printer_vendor_id: readText(rowMap, 'printer_vendor_id'),
+    printer_product_id: readText(rowMap, 'printer_product_id'),
   };
 }
 

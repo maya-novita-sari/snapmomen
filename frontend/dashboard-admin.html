@@ -21,7 +21,6 @@
     <button class="side-link" data-panel="panelUsers">User</button>
     <button class="side-link" data-panel="panelPhotos">Foto</button>
     <button class="side-link" data-panel="panelGallery">Galeri</button>
-    <button class="side-link" data-panel="panelSettings">Pengaturan</button>
     <div style="margin-top:auto;padding-top:20px">
       <button class="btn btn-primary" style="width:100%;margin-bottom:8px" id="goStudioBtn">Masuk Studio</button>
       <button class="btn btn-outline" style="width:100%" id="logoutBtnAdmin">Keluar</button>
@@ -39,11 +38,45 @@
         <div class="stat-card"><svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/></svg><div class="num" id="statFree">0</div><div class="lbl">Free</div></div>
         <div class="stat-card"><svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><rect x="7.5" y="7.5" width="9" height="9" rx="1"/></svg><div class="num" id="statFrames">0</div><div class="lbl">Bingkai</div></div>
       </div>
-      <div class="settings-card">
-        <p id="printerStatus">Belum terhubung</p>
-        <button class="btn btn-outline" id="connectPrinterBtn" style="margin-bottom:10px">Hubungkan Printer (WebUSB)</button>
-        <br>
-        <button class="btn btn-primary" id="testPrintBtn">Test Print</button>
+      <div class="dash-row">
+        <div class="settings-card" id="printerCard">
+          <h3 class="settings-title">Koneksi Printer</h3>
+          <p class="device-status" id="printerStatus" data-state="idle">Belum terhubung</p>
+          <div class="field">
+            <label for="printerSelect">Printer terdeteksi</label>
+            <select id="printerSelect"><option value="">Tidak ada printer terdeteksi</option></select>
+          </div>
+          <p class="device-error" id="printerError" hidden></p>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" id="connectPrinterBtn">Hubungkan</button>
+            <button type="button" class="btn btn-outline" id="testPrintBtn" disabled>Test Print</button>
+            <button type="button" class="btn btn-outline" id="disconnectPrinterBtn" disabled>Putuskan</button>
+          </div>
+          <p class="device-note">Epson L3210 adalah printer inkjet. Cetak lewat driver Epson di komputer. Kabel extension harus kabel data.</p>
+        </div>
+        <form class="settings-card" id="priceForm">
+          <h3 class="settings-title">Pengaturan Harga</h3>
+          <div class="field">
+            <label for="sessionPriceInput">Harga Per Sesi (Rp)</label>
+            <input type="number" id="sessionPriceInput" min="0" step="1000" value="40000" required>
+          </div>
+          <div class="field">
+            <label for="extraPrintPriceInput">Harga Tambah Cetak Per Lembar (Rp)</label>
+            <input type="number" id="extraPrintPriceInput" min="0" step="1000" value="20000" required>
+          </div>
+          <button type="submit" class="btn btn-primary" id="savePricesBtn">Simpan Pengaturan</button>
+        </form>
+        <div class="settings-card" id="cameraCard">
+          <h3 class="settings-title">Pengaturan Kamera</h3>
+          <p class="device-status" id="cameraStatus" data-state="idle">Belum dipilih</p>
+          <video id="cameraPreview" class="camera-preview" autoplay muted playsinline hidden></video>
+          <p class="device-error" id="cameraError" hidden></p>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" id="cameraDevicesBtn">Perangkat / Extension</button>
+            <button type="button" class="btn btn-outline" id="cameraTestBtn">Test Kamera</button>
+          </div>
+          <p class="device-note">Kamera extension tetap terdeteksi sebagai kamera biasa. Pakai kabel data (bukan charge saja) dan buka lewat HTTPS atau localhost.</p>
+        </div>
       </div>
     </section>
 
@@ -106,22 +139,6 @@
       <div class="photos-grid" id="galleryAdminGrid"></div>
       <div class="list-more"><button class="btn btn-outline" id="galleryAdminMoreBtn" style="display:none">Muat Lebih Banyak</button></div>
     </section>
-
-    <section class="admin-panel" id="panelSettings">
-      <h2>Pengaturan</h2>
-      <form class="settings-card" id="priceForm">
-        <h3 class="settings-title">Pengaturan Harga</h3>
-        <div class="field">
-          <label for="sessionPriceInput">Harga Per Sesi (Rp)</label>
-          <input type="number" id="sessionPriceInput" min="0" step="1000" value="40000" required>
-        </div>
-        <div class="field">
-          <label for="extraPrintPriceInput">Harga Tambah Cetak Per Lembar (Rp)</label>
-          <input type="number" id="extraPrintPriceInput" min="0" step="1000" value="20000" required>
-        </div>
-        <button type="submit" class="btn btn-primary" id="savePricesBtn">Simpan Pengaturan</button>
-      </form>
-    </section>
   </main>
 </div>
 
@@ -164,6 +181,21 @@
       <button type="submit" class="btn btn-primary" id="frameSaveBtn">Simpan</button>
     </div>
   </form>
+</div>
+
+<!-- Modal: perangkat kamera -->
+<div class="modal-overlay" id="cameraModal">
+  <div class="modal-box camera-modal-box">
+    <h3>Perangkat / Extension</h3>
+    <div class="device-list" id="cameraDeviceList"></div>
+    <video id="cameraModalPreview" class="camera-preview" autoplay muted playsinline hidden></video>
+    <p class="device-error" id="cameraModalError" hidden></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" id="cameraCloseBtn">Tutup</button>
+      <button type="button" class="btn btn-outline" id="cameraRetestBtn">Test Kamera</button>
+      <button type="button" class="btn btn-pink" id="cameraSaveBtn">Simpan sebagai default</button>
+    </div>
+  </div>
 </div>
 
 <!-- Modal: token bingkai custom -->
@@ -248,6 +280,7 @@
 
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
+<script src="js/device-settings.js"></script>
 <script src="js/app.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/frame-manager.js"></script>
@@ -255,6 +288,8 @@
 <script src="js/print.js"></script>
 <script src="js/image-utils.js"></script>
 <script src="js/dashboard-photos.js"></script>
+<script src="js/printer-panel.js"></script>
+<script src="js/camera-panel.js"></script>
 <script src="js/dashboard.js"></script>
 </body>
 </html>

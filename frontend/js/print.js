@@ -4,13 +4,21 @@ const PRINT_PAPER_HEIGHT_MM = 150;
 
 // Layer 1: WebUSB (works only if a compatible printer was already paired via
 // "Hubungkan Printer" and the browser/OS driver accepts raw JPEG bytes).
+// Memilih printer yang disimpan admin di dashboard. Kalau belum ada pilihan, pakai perangkat pertama.
+function pickSavedUsbDevice(devices) {
+  const saved = readCachedDeviceSettings();
+  const match = devices.find((device) => String(device.vendorId) === saved.printer_vendor_id
+    && String(device.productId) === saved.printer_product_id);
+  return match || devices[0];
+}
+
 async function tryWebUsbPrint(dataUrl, copies) {
   if (!navigator.usb) return false;
   try {
     const devices = await navigator.usb.getDevices();
     if (!devices.length) return false;
 
-    const device = devices[0];
+    const device = pickSavedUsbDevice(devices);
     await device.open();
     if (device.configuration === null) await device.selectConfiguration(1);
     await device.claimInterface(0);
