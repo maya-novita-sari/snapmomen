@@ -131,3 +131,4 @@ th{background:var(--cream-2);font-family:var(--font-display)}
 .device-item small{opacity:.65}
 .device-empty{margin:0;opacity:.7}
 .camera-preview[hidden]{display:none}
+.camera-preview-card{height:170px;background:#FDF0DC;border:2px dashed #EADFCB}

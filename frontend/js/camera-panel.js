@@ -34,7 +34,7 @@ function renderCameraStatus(state, detail) {
 function setVideoStream(videoId, stream) {
   const video = document.getElementById(videoId);
   video.srcObject = stream;
-  video.hidden = !stream;
+  video.hidden = videoId === 'cameraModalPreview' && !stream;
   if (stream) video.play().catch(() => {});
 }
 
